@@ -50,8 +50,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // run_mcmc
-Rcpp::List run_mcmc(arma::mat response, arma::mat design, arma::mat basis, arma::vec time, arma::field<arma::mat> penalties, arma::uvec indices_mean, arma::uword kdim, arma::uword iter, arma::uword burnin, arma::uword thin);
-RcppExport SEXP _rbfda_run_mcmc(SEXP responseSEXP, SEXP designSEXP, SEXP basisSEXP, SEXP timeSEXP, SEXP penaltiesSEXP, SEXP indices_meanSEXP, SEXP kdimSEXP, SEXP iterSEXP, SEXP burninSEXP, SEXP thinSEXP) {
+Rcpp::List run_mcmc(arma::mat response, arma::mat design, arma::mat basis, arma::vec time, arma::mat penalty, arma::uword ldim, arma::uword iter, arma::uword burnin, arma::uword thin);
+RcppExport SEXP _rbfda_run_mcmc(SEXP responseSEXP, SEXP designSEXP, SEXP basisSEXP, SEXP timeSEXP, SEXP penaltySEXP, SEXP ldimSEXP, SEXP iterSEXP, SEXP burninSEXP, SEXP thinSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -59,13 +59,12 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type design(designSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type basis(basisSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type time(timeSEXP);
-    Rcpp::traits::input_parameter< arma::field<arma::mat> >::type penalties(penaltiesSEXP);
-    Rcpp::traits::input_parameter< arma::uvec >::type indices_mean(indices_meanSEXP);
-    Rcpp::traits::input_parameter< arma::uword >::type kdim(kdimSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type penalty(penaltySEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type ldim(ldimSEXP);
     Rcpp::traits::input_parameter< arma::uword >::type iter(iterSEXP);
     Rcpp::traits::input_parameter< arma::uword >::type burnin(burninSEXP);
     Rcpp::traits::input_parameter< arma::uword >::type thin(thinSEXP);
-    rcpp_result_gen = Rcpp::wrap(run_mcmc(response, design, basis, time, penalties, indices_mean, kdim, iter, burnin, thin));
+    rcpp_result_gen = Rcpp::wrap(run_mcmc(response, design, basis, time, penalty, ldim, iter, burnin, thin));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -75,7 +74,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rbfda_rcpparma_outerproduct", (DL_FUNC) &_rbfda_rcpparma_outerproduct, 1},
     {"_rbfda_rcpparma_innerproduct", (DL_FUNC) &_rbfda_rcpparma_innerproduct, 1},
     {"_rbfda_rcpparma_bothproducts", (DL_FUNC) &_rbfda_rcpparma_bothproducts, 1},
-    {"_rbfda_run_mcmc", (DL_FUNC) &_rbfda_run_mcmc, 10},
+    {"_rbfda_run_mcmc", (DL_FUNC) &_rbfda_run_mcmc, 9},
     {NULL, NULL, 0}
 };
 

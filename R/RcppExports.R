@@ -36,7 +36,7 @@ rcpparma_bothproducts <- function(x) {
 #' @param thin Thinning defaulting to 1
 #' @export run_mcmc
 #' @return A List containing 3 lists including data, control, and samples.
-run_mcmc <- function(response, design, basis, time, penalties, indices_mean, kdim, iter, burnin, thin = 1L) {
-    .Call('_rbfda_run_mcmc', PACKAGE = 'rbfda', response, design, basis, time, penalties, indices_mean, kdim, iter, burnin, thin)
+run_mcmc <- function(response, design, basis, time, penalty, ldim, iter, burnin, thin = 1L) {
+    .Call('_rbfda_run_mcmc', PACKAGE = 'rbfda', response, design, basis, time, penalty, ldim, iter, burnin, thin)
 }
 

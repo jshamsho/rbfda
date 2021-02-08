@@ -1,8 +1,24 @@
 #include "data.h"
 
-Data::Data(arma::mat& response, arma::mat& design,
-           arma::mat& basis, arma::vec& time, 
-           arma::field<arma::mat>& penalties,
-           arma::uvec& indices, 
-           arma::uword kdim, arma::uword iter,
-           arma::uword burnin, arma::uword thin)
+Data::Data(arma::mat& response, arma::mat& design, 
+           arma::mat& basis,
+           arma::vec& time, arma::mat& penalty,
+           arma::uword ldim, arma::uword iter,
+           arma::uword burnin, arma::uword thin) {
+  this->response = response;
+  this->design = design;
+  this->basis= basis;
+  this->ldim = ldim;
+  this->basisdim = basis.n_cols;
+  this->time = time;
+  this->burnin = burnin;
+  this->iter = iter;
+  this->thin = thin;
+  this->nreg = response.n_cols;
+  this->nt = time.n_elem;
+  this->nsub = design.n_rows;
+  this->missing = arma::find_nonfinite(this->response);
+  // Rcpp::Rcout << nt << "\n" << nsub << "\n";
+  this->missing_sub = arma_mod(this->missing, this->nt * this->nsub);
+  this->missing_reg = arma::floor(this->missing / (this->nt * this->nsub));
+}

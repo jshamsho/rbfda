@@ -4,18 +4,7 @@
 \alias{run_mcmc}
 \title{Run Markov-Chain Monte-Carlo}
 \usage{
-run_mcmc(
-  response,
-  design,
-  basis,
-  time,
-  penalties,
-  indices_mean,
-  kdim,
-  iter,
-  burnin,
-  thin = 1L
-)
+run_mcmc(response, design, basis, time, penalty, ldim, iter, burnin, thin = 1L)
 }
 \arguments{
 \item{response}{N x T response matrix, where N is number of subjects and T is number
@@ -27,18 +16,18 @@ of time points. Values can be NA if there's missing data}
 
 \item{time}{vector of time points}
 
-\item{penalties}{List of smoothing penalties for mean structure}
-
-\item{indices_mean}{Maps penalties in the mean structure to beta coefficients}
-
-\item{kdim}{Dimension of latent subspace}
-
 \item{iter}{Number of iterations to run}
 
 \item{burnin}{Number of iterations to use as burn-in. This is only relevant when
 passing the returned object into post-processing functions}
 
 \item{thin}{Thinning defaulting to 1}
+
+\item{penalties}{List of smoothing penalties for mean structure}
+
+\item{indices_mean}{Maps penalties in the mean structure to beta coefficients}
+
+\item{kdim}{Dimension of latent subspace}
 }
 \value{
 A List containing 3 lists including data, control, and samples.

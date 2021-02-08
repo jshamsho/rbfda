@@ -1,5 +1,6 @@
 #include <RcppArmadillo.h>
 #include <iostream>
+#include "data.h"
 /*
 #include "Utils.h"
 #include "Data.h"
@@ -33,16 +34,15 @@
 // [[Rcpp::export]]
 Rcpp::List run_mcmc(arma::mat response, arma::mat design,
                     arma::mat basis, arma::vec time,
-                    arma::field<arma::mat> penalties,
-                    arma::uvec indices_mean,
-                    arma::uword kdim, arma::uword iter, arma::uword burnin,
+                    arma::mat penalty,
+                    arma::uword ldim, arma::uword iter, arma::uword burnin,
                     arma::uword thin=1) {
-  /*
-  Data dat(response, design_mean,
-           design_var, basis, time,
-           penalties_mean, penalties_var,
-           indices_mean, indices_var, kdim,
+  
+  Data dat(response, design,
+           basis, time,
+           penalty, ldim,
            iter, burnin, thin);
+  /*
   Parameters pars(dat);
   Transformations transf(dat, pars);
   Sampler* mysampler = SamplerFactory::new_mcmc(var, dat, pars, transf);
