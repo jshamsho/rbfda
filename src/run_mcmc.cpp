@@ -1,6 +1,8 @@
 #include <RcppArmadillo.h>
 #include <iostream>
 #include "data.h"
+#include "parameters.h"
+#include "transformations.h"
 /*
 #include "Utils.h"
 #include "Data.h"
@@ -42,9 +44,15 @@ Rcpp::List run_mcmc(arma::mat response, arma::mat design,
            basis, time,
            penalty, ldim,
            iter, burnin, thin);
-  /*
+  
   Parameters pars(dat);
   Transformations transf(dat, pars);
+  for (arma::uword i = 0; i < iter; i++) {
+    pars.update_omega(dat, transf);
+    pars.update_delta(dat, transf);
+  }
+  Rcpp::Rcout << pars.omega << "\n";
+  /*
   Sampler* mysampler = SamplerFactory::new_mcmc(var, dat, pars, transf);
   mysampler->sample_parameters();
    */

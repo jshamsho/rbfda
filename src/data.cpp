@@ -18,7 +18,6 @@ Data::Data(arma::mat& response, arma::mat& design,
   this->nt = time.n_elem;
   this->nsub = design.n_rows;
   this->missing = arma::find_nonfinite(this->response);
-  // Rcpp::Rcout << nt << "\n" << nsub << "\n";
   this->missing_sub = arma_mod(this->missing, this->nt * this->nsub);
   this->missing_reg = arma::floor(this->missing / (this->nt * this->nsub));
 }
