@@ -1,9 +1,10 @@
 library(mgcv)
 nt <- 100
 tt <- seq(from = 0, to = 1, length.out = nt)
-nreg <- 5
+nreg <- 9
 nsub <- 50
 ndf <- 25
+d <- 2
 sqexp <- function(t, tp) {
   exp(-(t - tp)^2)
 }
@@ -13,12 +14,12 @@ for (i in 1:nt) {
     kern[i, j] <- sqexp(tt[i], tt[j])
   }
 }
-Y <- matrix(rnorm(nsub * nt * nreg, sd = 2), nrow = nsub * nt, ncol = nreg)
+Y <- matrix(rnorm(nsub * nt * nreg, sd = .2), nrow = nsub * nt, ncol = nreg)
 Y1 <- mvrnorm(nsub * nreg, mu = rep(0, nt), Sigma = kern)
 # Y[1,1] <- NA
 # Y[1,1:nreg] <- NA
 # Y[2,1:nreg] <- NA
-X <- matrix(1, nrow = nsub)
+X <- matrix(rnorm(nsub * d), nrow = nsub, ncol = d)
 basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "tp", m = 2), data.frame(tt), absorb.cons = FALSE)
 B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
@@ -56,8 +57,17 @@ myfunc <- function(p, tau) {
 hist(sapply(1:10000, function(i) myfunc(20, .1)))
 
 p <- 6
-rho <- .99999
-corrmat <- rho * outer(rep(1, p), rep(1, p)) + diag(1-rho, p)
-M <- mvrnorm(10, mu = rep(0, p), Sigma = corrmat)
+l <- 3
+rho <- .8
+corrmat <- rho * outer(rep(1, l), rep(1, l)) + diag(1-rho, l)
+M <- mvrnorm(10, mu = rep(0, l), Sigma = corrmat)
 M
 plot(M[,1], M[,2])
+kronecker(corrmat, diag(p))
+
+
+sigma <- 1:5
+kronecker(diag(sigma), diag(10)) # correct
+
+kronecker(diag(10), diag(sigma))
+diag(1:5)

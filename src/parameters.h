@@ -16,7 +16,7 @@ class Parameters {
     // delta: Subject-region-time specific precisions, size nt * nsub by nreg
     //   see https://jrnold.github.io/bayesian_notes/robust-regression.html
     // omega: Region-specific precisions
-    // lambda: Smoothing parameters for psi with uniform prior on SD scale
+    // zeta: Smoothing parameters for psi with uniform prior on SD scale
     //   Corresponds to Gamma(-.5, 0) on precision scale
     // nup: Region specific degrees of freedom=
     // 
@@ -24,14 +24,22 @@ class Parameters {
     double prior_omega_rate = 0;
     double posterior_omega_shape;
     double delta_nu = 5;
-    arma::vec omega, nup, lambda;
-    arma::mat psi, sigmasqetai, delta, eta;
+    double delta_eta_nu = 5;
+    double delta_beta_nu = 4;
+    arma::vec omega, nup, zeta;
+    arma::mat lambda, sigmasqeta, sigmasqetai, delta, eta, xi_eta, delta_eta,
+      beta, delta_beta;
     arma::cube phi;
     double prior_shape = 0;
     Parameters(Data&);
     Parameters() {};
     void update_omega(Data&, Transformations&);
     void update_delta(Data&, Transformations&);
-    
+    void update_eta(Data&, Transformations&);
+    void update_xi_eta(Data&, Transformations&);
+    void update_delta_eta(Data&, Transformations&);
+    void update_beta(const Data&, Transformations&);
+    void update_delta_beta(const Data&, Transformations&);
+    void update_lambda(const Data&, Transformations&);
 };
 #endif

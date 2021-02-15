@@ -3,6 +3,7 @@
 #include "data.h"
 #include "parameters.h"
 #include "transformations.h"
+#include "sampler.h"
 /*
 #include "Utils.h"
 #include "Data.h"
@@ -47,11 +48,19 @@ Rcpp::List run_mcmc(arma::mat response, arma::mat design,
   
   Parameters pars(dat);
   Transformations transf(dat, pars);
+  // Sampler mysampler(dat, pars, transf);
+  // mysampler.sample();
+  /*
   for (arma::uword i = 0; i < iter; i++) {
     pars.update_omega(dat, transf);
     pars.update_delta(dat, transf);
+    pars.update_eta(dat, transf);
+    pars.update_beta(dat, transf);
+    pars.update_delta_beta(dat, transf);
+    pars.update_lambda(dat, transf);
   }
-  Rcpp::Rcout << pars.omega << "\n";
+   */
+  // Rcpp::Rcout << pars.omega << "\n";
   /*
   Sampler* mysampler = SamplerFactory::new_mcmc(var, dat, pars, transf);
   mysampler->sample_parameters();

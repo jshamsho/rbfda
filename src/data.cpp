@@ -7,7 +7,9 @@ Data::Data(arma::mat& response, arma::mat& design,
            arma::uword burnin, arma::uword thin) {
   this->response = response;
   this->design = design;
+  this->designdim = design.n_cols;
   this->basis= basis;
+  this->penalty = penalty;
   this->ldim = ldim;
   this->basisdim = basis.n_cols;
   this->time = time;
@@ -20,4 +22,8 @@ Data::Data(arma::mat& response, arma::mat& design,
   this->missing = arma::find_nonfinite(this->response);
   this->missing_sub = arma_mod(this->missing, this->nt * this->nsub);
   this->missing_reg = arma::floor(this->missing / (this->nt * this->nsub));
+}
+
+Rcpp::List Data::write_data() {
+  return Rcpp::List::create(Rcpp::Named("poop", 1));
 }

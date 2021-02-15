@@ -10,8 +10,10 @@ class Parameters;
 
 class Transformations {
 public:
+  Transformations() {};
   Transformations(Data&, Parameters&);
-  arma::mat fit;
+  void initialize_fit(Data&, Parameters&);
+  arma::mat fit, fit_eta, psi, btb;
   
 };
 
