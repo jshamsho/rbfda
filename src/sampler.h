@@ -23,7 +23,6 @@ class Sampler
     Rcpp::List get_samples();
     Rcpp::List write_data();
     Rcpp::List write_control();
-    ~Sampler() {}
 };
 
 #endif
