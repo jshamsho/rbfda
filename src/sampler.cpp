@@ -28,6 +28,7 @@ void Sampler::sample() {
         Rcpp::Rcout << "MCMC terminated by user\n";
         goto stop;
       }
+      transf.complete_response(dat, pars);
       pars.update_beta(dat, transf);
       pars.update_delta_beta(dat, transf);
       pars.update_delta_eta(dat, transf);
@@ -36,6 +37,7 @@ void Sampler::sample() {
       pars.update_omega(dat, transf);
       pars.update_xi_eta(dat, transf);
       pars.update_zeta(dat, transf);
+
     }
     progress_bar.increment();
     write_samples();
@@ -52,7 +54,7 @@ void Sampler::write_samples() {
   pars.omega_container.col(current_iter) = pars.omega;
   pars.xi_eta_container.slice(current_iter) = pars.xi_eta;
   pars.zeta_container.col(current_iter) = pars.zeta;
-  
+  pars.eta_container.slice(current_iter) = pars.eta;
   current_iter++;
 }
 
@@ -64,5 +66,6 @@ Rcpp::List Sampler::get_samples() {
                             Rcpp::Named("eta", pars.eta_container),
                             Rcpp::Named("omega", pars.omega_container),
                             Rcpp::Named("xi_eta", pars.xi_eta_container),
-                            Rcpp::Named("zeta", pars.zeta_container));
+                            Rcpp::Named("zeta", pars.zeta_container),
+                            Rcpp::Named("fit", transf.fit));
 }

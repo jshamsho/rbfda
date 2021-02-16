@@ -27,7 +27,6 @@ Parameters::Parameters(Data& dat) {
   delta_eta = arma::mat(dat.nreg, dat.ldim, arma::fill::ones);
 }
 
-// Need to update fit here
 void Parameters::update_omega(Data& dat, Transformations& transf) {
   double rate;
   for (arma::uword r = 0; r < dat.nreg; r++) {
@@ -52,12 +51,12 @@ void Parameters::update_delta(Data& dat, Transformations& transf) {
 }
 */
 
-// eta_il = beta * xi + eps
-// (nreg x 1), (nreg x d), (d x 1), (nreg x 1)
+// Need to update fit here
 void Parameters::update_eta(Data& dat, Transformations& transf) {
   arma::uword first, last, first_eta, last_eta;
   arma::vec b, yt;
   arma::mat Q, beta_mat, diagsigma, diagomega = arma::diagmat(omega);
+  transf.fit.zeros();
   for (arma::uword i = 0; i < dat.nsub; i++) {
     first = i * dat.nt, last = (i + 1) * dat.nt - 1;
     first_eta = i * dat.nreg, last_eta = i * dat.nreg + dat.nreg - 1;
@@ -69,6 +68,8 @@ void Parameters::update_eta(Data& dat, Transformations& transf) {
         diagsigma * (beta_mat * dat.design.row(i).t());
       Q = phi.slice(l).t() * diagomega * phi.slice(l) + diagsigma;
       eta.rows(first_eta, last_eta).col(l) = bayesreg(b, Q);
+      transf.fit.rows(first, last) = transf.fit.rows(first, last) + 
+        transf.psi.col(l) * (eta.rows(first_eta, last_eta).col(l).t() * phi.slice(l).t());
     }
   }
 }
@@ -101,7 +102,6 @@ void Parameters::update_delta_eta(Data& dat, Transformations& transf) {/*
   }*/
 }
 
-// Need to update fit_eta here
 void Parameters::update_beta(const Data& dat, Transformations& transf) {
   arma::uword first, last;
   arma::uvec r_ind;
@@ -118,6 +118,7 @@ void Parameters::update_beta(const Data& dat, Transformations& transf) {
       Q = dat.design.t() * sig_eta * dat.design + db;
       b = dat.design.t() * (sig_eta * eta_vec);
       beta.col(l).rows(first, last) = bayesreg(b, Q);
+      arma::vec(transf.fit_eta.col(l)).rows(r_ind) = dat.design * beta.col(l).rows(first, last);
     }
   }
 }
@@ -140,24 +141,25 @@ void Parameters::update_lambda(const Data& dat, Transformations& transf) {
   eta_phi = arma::mat(dat.nsub, dat.nreg);
   diagomega = arma::diagmat(omega);
   b = arma::vec(dat.basisdim);
+  
   for (arma::uword l = 0; l < dat.ldim; l++) {
     b.zeros();
     eta_sum.zeros();
+
     for (arma::uword i = 0; i < dat.nsub; i++) {
       eta_temp = eta.col(l).rows(i * dat.nreg, (i + 1) * dat.nreg - 1);
       eta_sum = eta_sum + eta_temp * eta_temp.t();
       eta_phi.row(i) = eta_temp.t() * phi.slice(l).t();
       transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) = transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) -
         transf.psi.col(l) * eta_phi.row(i);
-      
-      b = b + (transf.bty.rows(i * dat.basisdim, (i + 1) * dat.basisdim - 1) -
-        (dat.basis.t() * transf.psi.col(l)) * eta_phi.row(i)) * 
+      b = b + (transf.bty.rows(i * dat.basisdim, (i + 1) * dat.basisdim - 1) - 
+        dat.basis.t() * transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1)) * 
         diagomega * (eta_phi.row(i)).t();
     }
     Q = arma::trace(phi.slice(l).t() * diagomega * phi.slice(l) * eta_sum) * transf.btb + zeta(l) * dat.penalty;
     lambda.col(l) = bayesreg(b, Q);
-    
     transf.psi.col(l) = dat.basis * lambda.col(l);
+ 
     for (arma::uword i = 0; i < dat.nsub; i++) {
       transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) = transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) +
         transf.psi.col(l) * eta_phi.row(i);      
@@ -173,4 +175,8 @@ void Parameters::update_zeta(const Data& dat, Transformations& transf) {
       arma::as_scalar(lambda.col(l).t() * dat.penalty * lambda.col(l));
     zeta(l) = R::rgamma(shape, 1. / rate);
   }
+}
+
+void Parameters::update_phi(const Data& dat, Transformations& transf) {
+  
 }

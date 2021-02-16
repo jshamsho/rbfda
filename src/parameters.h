@@ -53,5 +53,6 @@ class Parameters {
     void update_delta_beta(const Data&, Transformations&);
     void update_lambda(const Data&, Transformations&);
     void update_zeta(const Data&, Transformations&);
+    void update_phi(const Data&, Transformations&);
 };
 #endif
