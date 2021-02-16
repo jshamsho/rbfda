@@ -29,15 +29,14 @@ void Sampler::sample() {
         goto stop;
       }
       transf.complete_response(dat, pars);
+      pars.update_lambda(dat, transf);
       pars.update_beta(dat, transf);
       pars.update_delta_beta(dat, transf);
       pars.update_delta_eta(dat, transf);
       pars.update_eta(dat, transf);
-      pars.update_lambda(dat, transf);
       pars.update_omega(dat, transf);
       pars.update_xi_eta(dat, transf);
       pars.update_zeta(dat, transf);
-
     }
     progress_bar.increment();
     write_samples();

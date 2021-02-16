@@ -7,6 +7,7 @@ Transformations::Transformations(Data& dat, Parameters& pars) {
   fit_latent = arma::mat(dat.nsub * dat.basisdim, dat.nreg, arma::fill::zeros);
   fit_eta = arma::mat(dat.nsub * dat.nreg, dat.ldim, arma::fill::randn);
   psi = dat.basis * pars.lambda;
+  lin_constr = arma::mat(dat.ldim, dat.basisdim);
   initialize_fit(dat, pars);
 }
 
@@ -34,6 +35,10 @@ void Transformations::initialize_fit(Data& dat, Parameters& pars) {
         fit_latent.rows(i * dat.basisdim, (i + 1) * dat.basisdim - 1) + 
         pars.lambda.col(l) * pars.eta.col(l).rows(i * dat.nreg, (i + 1) * dat.nreg - 1).t() * pars.phi.slice(l).t();
     }
+  }
+  
+  for (arma::uword l = 0; l < dat.ldim; l++) {
+    lin_constr.row(l) = pars.lambda.col(l).t() * btb;
   }
 }
 

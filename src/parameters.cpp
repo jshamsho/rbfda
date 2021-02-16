@@ -135,6 +135,7 @@ void Parameters::update_delta_beta(const Data& dat, Transformations& transf) {
 }
 
 void Parameters::update_lambda(const Data& dat, Transformations& transf) {
+  double psi_norm;
   arma::mat Q, eta_sum, eta_phi, diagomega; 
   arma::vec b, eta_temp;
   eta_sum = arma::mat(dat.nreg, dat.nreg, arma::fill::zeros);
@@ -157,10 +158,17 @@ void Parameters::update_lambda(const Data& dat, Transformations& transf) {
         diagomega * (eta_phi.row(i)).t();
     }
     Q = arma::trace(phi.slice(l).t() * diagomega * phi.slice(l) * eta_sum) * transf.btb + zeta(l) * dat.penalty;
-    lambda.col(l) = bayesreg(b, Q);
+    transf.lin_constr.shed_row(l);
+    lambda.col(l) = bayesreg_orth(b, Q, transf.lin_constr);
+    psi_norm = arma::norm(dat.basis * lambda.col(l));
+    lambda.col(l) = lambda.col(l) / psi_norm;
     transf.psi.col(l) = dat.basis * lambda.col(l);
- 
+    eta.col(l) = eta.col(l) * psi_norm;
+    transf.lin_constr.insert_rows(l, transf.psi.col(l).t() * dat.basis);
+    
     for (arma::uword i = 0; i < dat.nsub; i++) {
+      eta_temp = eta.col(l).rows(i * dat.nreg, (i + 1) * dat.nreg - 1);
+      eta_phi.row(i) = eta_temp.t() * phi.slice(l).t();
       transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) = transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) +
         transf.psi.col(l) * eta_phi.row(i);      
     }
