@@ -1,6 +1,17 @@
 #include "parameters.h"
 
 Parameters::Parameters(Data& dat) {
+  omega_container = arma::mat(dat.nreg, dat.iter);
+  zeta_container = arma::mat(dat.ldim, dat.iter);
+  lambda_container = arma::cube(dat.basisdim, dat.ldim, dat.iter);
+  phi_container = arma::field<arma::cube>(dat.iter);
+  eta_container = arma::cube(dat.nsub * dat.nreg, dat.ldim, dat.iter);
+  sigmasqetai_container = arma::cube(dat.nsub * dat.nreg, dat.ldim, dat.iter);
+  sigmasqeta_container = arma::cube(dat.nreg, dat.ldim, dat.iter);
+  xi_eta_container = arma::cube(dat.nsub * dat.nreg, dat.ldim, dat.iter);
+  beta_container = arma::cube(dat.designdim * dat.nreg, dat.ldim, dat.iter);
+  delta_beta_container = arma::cube(dat.nreg * dat.designdim, dat.ldim, dat.iter);
+  delta_eta_container = arma::cube(dat.nreg, dat.ldim, dat.iter);
   omega = arma::vec(dat.nreg, arma::fill::ones);
   posterior_omega_shape = dat.nt * dat.nsub / 2. + prior_shape;
   delta = arma::mat(dat.nt * dat.nsub, dat.nreg, arma::fill::ones);
@@ -16,6 +27,7 @@ Parameters::Parameters(Data& dat) {
   delta_eta = arma::mat(dat.nreg, dat.ldim, arma::fill::ones);
 }
 
+// Need to update fit here
 void Parameters::update_omega(Data& dat, Transformations& transf) {
   double rate;
   for (arma::uword r = 0; r < dat.nreg; r++) {
@@ -62,15 +74,16 @@ void Parameters::update_eta(Data& dat, Transformations& transf) {
 }
 
 void Parameters::update_xi_eta(Data& dat, Transformations& transf) {
-  double shape = .5 + delta_eta_nu;
-  double rate;
+  double shape = .5 + delta_eta_nu / 2.;
+  double rate = 0;
   arma::uword idx;
   for (arma::uword r = 0; r < dat.nreg; r++) {
     for (arma::uword l = 0; l < dat.ldim; l++) {
       for (arma::uword i = 0; i < dat.nsub; i++) {
         idx = i * dat.nreg + r;
-        rate = delta_eta_nu + std::pow(eta(idx, l) - transf.fit_eta(idx, l), 2) * sigmasqeta(r, l);
-        xi_eta(i * dat.nreg + r, l) = R::rgamma(shape, 1. / rate);
+        rate = delta_eta_nu + 
+          std::pow(eta(idx, l) - transf.fit_eta(idx, l), 2) * sigmasqeta(r, l);
+        xi_eta(idx, l) = R::rgamma(shape, 1. / rate);
       }
     }
   }
@@ -88,6 +101,7 @@ void Parameters::update_delta_eta(Data& dat, Transformations& transf) {/*
   }*/
 }
 
+// Need to update fit_eta here
 void Parameters::update_beta(const Data& dat, Transformations& transf) {
   arma::uword first, last;
   arma::uvec r_ind;
@@ -109,8 +123,8 @@ void Parameters::update_beta(const Data& dat, Transformations& transf) {
 }
 
 void Parameters::update_delta_beta(const Data& dat, Transformations& transf) {
-  double shape = delta_beta_nu + .5;
-  double rate = delta_beta_nu;
+  double shape = delta_beta_nu / 2. + .5;
+  double rate = delta_beta_nu / 2.;
   for (arma::uword l = 0; l < dat.ldim; l++) {
     for (arma::uword j = 0; j < dat.designdim * dat.nreg; j++) {
       rate = rate + .5 * std::pow(beta(j, l), 2.);
@@ -120,26 +134,43 @@ void Parameters::update_delta_beta(const Data& dat, Transformations& transf) {
 }
 
 void Parameters::update_lambda(const Data& dat, Transformations& transf) {
-  arma::mat eta_sum = arma::mat(dat.nreg, dat.nreg, arma::fill::zeros);
-  arma::vec eta_temp;
-  arma::vec b = arma::zeros(dat.basisdim);
-  arma::mat Q;
-  arma::mat diagomega = arma::diagmat(omega);
+  arma::mat Q, eta_sum, eta_phi, diagomega; 
+  arma::vec b, eta_temp;
+  eta_sum = arma::mat(dat.nreg, dat.nreg, arma::fill::zeros);
+  eta_phi = arma::mat(dat.nsub, dat.nreg);
+  diagomega = arma::diagmat(omega);
+  b = arma::vec(dat.basisdim);
   for (arma::uword l = 0; l < dat.ldim; l++) {
+    b.zeros();
+    eta_sum.zeros();
     for (arma::uword i = 0; i < dat.nsub; i++) {
       eta_temp = eta.col(l).rows(i * dat.nreg, (i + 1) * dat.nreg - 1);
       eta_sum = eta_sum + eta_temp * eta_temp.t();
-      b = b + dat.basis.t() * dat.response.rows(i * dat.nt, (i + 1) * dat.nt - 1) * (diagomega * (phi.slice(l) * eta_temp));
-      for (arma::uword ll = 0; ll < dat.ldim; ll++) {
-        if (ll != l) {
-          b = b - (dat.basis.t() * transf.psi.col(l)) * (eta.col(l).rows(i * dat.nreg, (i + 1) * dat.nreg - 1).t() *
-            (phi.slice(ll).t() * (diagomega * (phi.slice(l) * eta_temp))));
-        }
-      }
+      eta_phi.row(i) = eta_temp.t() * phi.slice(l).t();
+      transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) = transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) -
+        transf.psi.col(l) * eta_phi.row(i);
+      
+      b = b + (transf.bty.rows(i * dat.basisdim, (i + 1) * dat.basisdim - 1) -
+        (dat.basis.t() * transf.psi.col(l)) * eta_phi.row(i)) * 
+        diagomega * (eta_phi.row(i)).t();
     }
     Q = arma::trace(phi.slice(l).t() * diagomega * phi.slice(l) * eta_sum) * transf.btb + zeta(l) * dat.penalty;
     lambda.col(l) = bayesreg(b, Q);
-    b.zeros();
+    
+    transf.psi.col(l) = dat.basis * lambda.col(l);
+    for (arma::uword i = 0; i < dat.nsub; i++) {
+      transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) = transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) +
+        transf.psi.col(l) * eta_phi.row(i);      
+    }
   }
+}
 
+void Parameters::update_zeta(const Data& dat, Transformations& transf) {
+  double shape = prior_zeta_shape + .5 * dat.basisdim;
+  double rate;
+  for (arma::uword l = 0; l < dat.ldim; l++) {
+    rate = prior_zeta_rate + .5 * 
+      arma::as_scalar(lambda.col(l).t() * dat.penalty * lambda.col(l));
+    zeta(l) = R::rgamma(shape, 1. / rate);
+  }
 }

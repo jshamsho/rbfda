@@ -13,7 +13,7 @@ public:
   Transformations() {};
   Transformations(Data&, Parameters&);
   void initialize_fit(Data&, Parameters&);
-  arma::mat fit, fit_eta, psi, btb;
+  arma::mat fit, fit_latent, fit_eta, psi, btb, bty;
   
 };
 

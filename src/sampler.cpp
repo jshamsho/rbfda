@@ -11,7 +11,7 @@ Sampler::Sampler(Data& dat, Parameters& pars, Transformations& transf) {
 Rcpp::List Sampler::write_data() {
   return(dat.write_data());
 }
-/*
+
 Rcpp::List Sampler::write_control() {
   return(Rcpp::List::create(
       Rcpp::Named("iterations", dat.iter),
@@ -28,7 +28,14 @@ void Sampler::sample() {
         Rcpp::Rcout << "MCMC terminated by user\n";
         goto stop;
       }
-      
+      pars.update_beta(dat, transf);
+      pars.update_delta_beta(dat, transf);
+      pars.update_delta_eta(dat, transf);
+      pars.update_eta(dat, transf);
+      pars.update_lambda(dat, transf);
+      pars.update_omega(dat, transf);
+      pars.update_xi_eta(dat, transf);
+      pars.update_zeta(dat, transf);
     }
     progress_bar.increment();
     write_samples();
@@ -36,4 +43,26 @@ void Sampler::sample() {
   stop:
     NULL;
 }
-*/
+
+void Sampler::write_samples() {
+  pars.lambda_container.slice(current_iter) = pars.lambda;
+  pars.beta_container.slice(current_iter) = pars.beta;
+  pars.delta_beta_container.slice(current_iter) = pars.delta_beta;
+  pars.delta_eta_container.slice(current_iter) = pars.delta_eta;
+  pars.omega_container.col(current_iter) = pars.omega;
+  pars.xi_eta_container.slice(current_iter) = pars.xi_eta;
+  pars.zeta_container.col(current_iter) = pars.zeta;
+  
+  current_iter++;
+}
+
+Rcpp::List Sampler::get_samples() {
+  return Rcpp::List::create(Rcpp::Named("lambda", pars.lambda_container),
+                            Rcpp::Named("beta", pars.beta_container),
+                            Rcpp::Named("delta_beta", pars.delta_beta_container),
+                            Rcpp::Named("delta_eta", pars.delta_eta_container),
+                            Rcpp::Named("eta", pars.eta_container),
+                            Rcpp::Named("omega", pars.omega_container),
+                            Rcpp::Named("xi_eta", pars.xi_eta_container),
+                            Rcpp::Named("zeta", pars.zeta_container));
+}

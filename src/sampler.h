@@ -12,6 +12,7 @@ class Parameters;
 class Sampler
 {
   public:
+    arma::uword current_iter = 0;
     Data dat;
     Parameters pars;
     Transformations transf;

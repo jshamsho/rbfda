@@ -2,8 +2,10 @@
 
 Transformations::Transformations(Data& dat, Parameters& pars) {
   btb = dat.basis.t() * dat.basis;
+  bty = arma::mat(dat.basisdim * dat.nsub, dat.nreg);
   fit = arma::mat(dat.nsub * dat.nt, dat.nreg, arma::fill::zeros);
-  fit_eta = arma::mat(dat.nreg, dat.ldim, arma::fill::randn);
+  fit_latent = arma::mat(dat.nsub * dat.basisdim, dat.nreg, arma::fill::zeros);
+  fit_eta = arma::mat(dat.nsub * dat.nreg, dat.ldim, arma::fill::randn);
   psi = arma::mat(dat.nt, dat.ldim, arma::fill::randn);
   initialize_fit(dat, pars);
 }
@@ -24,5 +26,15 @@ void Transformations::initialize_fit(Data& dat, Parameters& pars) {
       last_eta = (i + 1) * dat.nreg - 1;
     }
   }
+  for (arma::uword i = 0; i < dat.nsub; i++) {
+    bty.rows(i * dat.basisdim, (i + 1) * dat.basisdim - 1) = dat.basis.t() * dat.response.rows(i * dat.nt, (i + 1) * dat.nt - 1);
+    for (arma::uword l = 0; l < dat.ldim; l++) {
+      fit_latent.rows(i * dat.basisdim, (i + 1) * dat.basisdim - 1) = 
+        fit_latent.rows(i * dat.basisdim, (i + 1) * dat.basisdim - 1) + 
+        pars.lambda.col(l) * pars.eta.col(l).rows(i * dat.nreg, (i + 1) * dat.nreg - 1).t() * pars.phi.slice(l).t();
+      
+    }
+  }
+  
 }
 
