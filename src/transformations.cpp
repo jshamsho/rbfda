@@ -39,10 +39,20 @@ void Transformations::initialize_fit(Data& dat, Parameters& pars) {
     }
   }
   
+  // for (arma::uword l = 0; l < dat.ldim; l++) {
+  //   psi_lin_constr.row(l) = pars.lambda.col(l).t() * btb;
+  //   for (arma::uword r = 0; r < dat.nreg; r++) {
+  //     phi_lin_constr.row(r * dat.ldim + l).cols(l * dat.nreg, (l + 1) * dat.nreg - 1) =
+  //       pars.phi.slice(l).col(r).t();
+  //   }
+  // }
   for (arma::uword l = 0; l < dat.ldim; l++) {
     psi_lin_constr.row(l) = pars.lambda.col(l).t() * btb;
+  }
+  for (arma::uword l = 0; l < dat.ldim; l++) {
     for (arma::uword r = 0; r < dat.nreg; r++) {
-      phi_lin_constr.row(r * dat.ldim + l).cols(l * dat.nreg, (l + 1) * dat.nreg - 1) =
+      // Rcpp::Rcout << l * dat.nreg + r << "\n";
+      phi_lin_constr.row(l * dat.nreg + r).cols(l * dat.nreg, (l + 1) * dat.nreg - 1) =
         pars.phi.slice(l).col(r).t();
     }
   }

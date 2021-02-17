@@ -1,7 +1,7 @@
 library(mgcv)
 nt <- 100
 tt <- seq(from = 0, to = 1, length.out = nt)
-nreg <- 9
+nreg <- 3
 nsub <- 50
 ndf <- 25
 d <- 2
@@ -24,7 +24,7 @@ basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "tp", m = 2), data.frame(tt), ab
 B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
 matplot(tt, B, xlab = "time", ylab = "spline", type = "l")
-microbenchmark::microbenchmark(result <- run_mcmc(Y1, X, B, tt, penalty, 4, 1000, 100, 1), times = 1)
+microbenchmark::microbenchmark(result <- run_mcmc(Y1, X, B, tt, penalty, 4, 5, 100, 1), times = 1)
 pcomp <- princomp(Y1)
 matplot(pcomp$loadings[,1:3], type = "l")
 pracma::trapz(tt, pcomp$loadings[,1] * pcomp$loadings[,3])

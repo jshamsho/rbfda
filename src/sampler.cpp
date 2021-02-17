@@ -71,5 +71,6 @@ Rcpp::List Sampler::get_samples() {
                             Rcpp::Named("xi_eta", pars.xi_eta_container),
                             Rcpp::Named("zeta", pars.zeta_container),
                             Rcpp::Named("phi", pars.phi_container),
-                            Rcpp::Named("fit", transf.fit));
+                            Rcpp::Named("fit", transf.fit),
+                            Rcpp::Named("phi_constr", transf.phi_lin_constr));
 }
