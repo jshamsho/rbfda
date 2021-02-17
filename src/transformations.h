@@ -14,7 +14,7 @@ public:
   Transformations(Data&, Parameters&);
   void initialize_fit(Data&, Parameters&);
   void complete_response(Data&, Parameters&);
-  arma::mat fit, fit_latent, fit_eta, psi, btb, bty, lin_constr;
+  arma::mat fit, fit_latent, fit_eta, psi, btb, bty, psi_lin_constr, phi_lin_constr, C_rho, ones_mat;
   
 };
 

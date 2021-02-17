@@ -37,6 +37,7 @@ void Sampler::sample() {
       pars.update_omega(dat, transf);
       pars.update_xi_eta(dat, transf);
       pars.update_zeta(dat, transf);
+      pars.update_phi(dat, transf);
     }
     progress_bar.increment();
     write_samples();
@@ -54,6 +55,7 @@ void Sampler::write_samples() {
   pars.xi_eta_container.slice(current_iter) = pars.xi_eta;
   pars.zeta_container.col(current_iter) = pars.zeta;
   pars.eta_container.slice(current_iter) = pars.eta;
+  pars.phi_container(current_iter) = pars.phi;
   current_iter++;
 }
 
@@ -66,5 +68,6 @@ Rcpp::List Sampler::get_samples() {
                             Rcpp::Named("omega", pars.omega_container),
                             Rcpp::Named("xi_eta", pars.xi_eta_container),
                             Rcpp::Named("zeta", pars.zeta_container),
+                            Rcpp::Named("phi", pars.phi_container),
                             Rcpp::Named("fit", transf.fit));
 }

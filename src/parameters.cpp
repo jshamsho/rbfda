@@ -158,13 +158,13 @@ void Parameters::update_lambda(const Data& dat, Transformations& transf) {
         diagomega * (eta_phi.row(i)).t();
     }
     Q = arma::trace(phi.slice(l).t() * diagomega * phi.slice(l) * eta_sum) * transf.btb + zeta(l) * dat.penalty;
-    transf.lin_constr.shed_row(l);
-    lambda.col(l) = bayesreg_orth(b, Q, transf.lin_constr);
+    transf.psi_lin_constr.shed_row(l);
+    lambda.col(l) = bayesreg_orth(b, Q, transf.psi_lin_constr);
     psi_norm = arma::norm(dat.basis * lambda.col(l));
     lambda.col(l) = lambda.col(l) / psi_norm;
     transf.psi.col(l) = dat.basis * lambda.col(l);
     eta.col(l) = eta.col(l) * psi_norm;
-    transf.lin_constr.insert_rows(l, transf.psi.col(l).t() * dat.basis);
+    transf.psi_lin_constr.insert_rows(l, transf.psi.col(l).t() * dat.basis);
     
     for (arma::uword i = 0; i < dat.nsub; i++) {
       eta_temp = eta.col(l).rows(i * dat.nreg, (i + 1) * dat.nreg - 1);
@@ -186,5 +186,42 @@ void Parameters::update_zeta(const Data& dat, Transformations& transf) {
 }
 
 void Parameters::update_phi(const Data& dat, Transformations& transf) {
-  
+  double norm;
+  arma::uword first, last, idx;
+  arma::vec b, phi_temp;
+  arma::uvec r_ind;
+  arma::mat Q, diagomega, diageta, eta_sum;
+  b = arma::zeros(dat.nreg * dat.ldim);
+  diagomega = arma::diagmat(omega);
+  eta_sum = arma::zeros(dat.ldim, dat.ldim);
+  for (arma::uword r = 0; r < dat.nreg; r++) {
+    b.zeros();
+    eta_sum.zeros();
+    r_ind = arma::regspace<arma::uvec>(r, dat.nreg, (dat.nreg - 1) * dat.ldim + r);
+    for (arma::uword i = 0; i < dat.nsub; i++) {
+      first = i * dat.nt, last = (i + 1) * dat.nt - 1;
+      idx = i * dat.nreg + r;
+      diageta = arma::diagmat(eta.row(idx));
+      b = b + arma::vectorise(diagomega * dat.response.rows(first, last).t() *
+        transf.psi * diageta);
+      eta_sum = eta_sum + diageta * diageta;
+    }
+    Q = arma::kron(eta_sum, diagomega) + 
+      arma::kron(transf.C_rho, arma::eye(dat.nreg, dat.nreg));
+    transf.phi_lin_constr.shed_rows(r_ind);
+    phi_temp = bayesreg_orth(b, Q, transf.phi_lin_constr);
+    for (arma::uword l = 0; l < dat.ldim; l++) {
+      norm = arma::norm(phi_temp.rows(l * dat.nreg, (l + 1) * dat.nreg - 1));
+      phi.slice(l).col(r) = phi_temp.rows(l * dat.nreg, (l + 1) * dat.nreg - 1) / norm;
+      transf.phi_lin_constr.insert_rows(l * dat.nreg + r, arma::rowvec(dat.nreg * dat.ldim, arma::fill::zeros));
+      transf.phi_lin_constr.row(l * dat.nreg + r).cols(l * dat.nreg, (l + 1) * dat.nreg - 1) =
+        phi.slice(l).col(r).t();
+      for (arma::uword i = 0; i < dat.nsub; i++) {
+        eta.row(i * dat.nreg + r).col(l) = eta.row(i * dat.nreg + r).col(l) * norm;
+      }
+    }
+    
+    // phi.subcube(0, r, 0, dat.nreg, r, dat.ldim) = phi_temp.reshape(dat.nreg, dat.ldim);
+    // phi.col(r) = phi_temp.reshape(dat.nreg, dat.ldim, 1);
+  }
 }

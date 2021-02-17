@@ -28,6 +28,7 @@ class Parameters {
     double delta_nu = 5;
     double delta_eta_nu = 5;
     double delta_beta_nu = 4;
+    double rho = .5;
     arma::vec omega, nup, zeta;
     arma::mat lambda, sigmasqeta, sigmasqetai, delta, eta, xi_eta, delta_eta,
       beta, delta_beta;
