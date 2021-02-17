@@ -12,6 +12,7 @@ Parameters::Parameters(Data& dat) {
   beta_container = arma::cube(dat.designdim * dat.nreg, dat.ldim, dat.iter);
   delta_beta_container = arma::cube(dat.nreg * dat.designdim, dat.ldim, dat.iter);
   delta_eta_container = arma::cube(dat.nreg, dat.ldim, dat.iter);
+  rho_container = arma::vec(dat.iter);
   omega = arma::vec(dat.nreg, arma::fill::ones);
   posterior_omega_shape = dat.nt * dat.nsub / 2. + prior_shape;
   delta = arma::mat(dat.nt * dat.nsub, dat.nreg, arma::fill::ones);
@@ -30,9 +31,10 @@ Parameters::Parameters(Data& dat) {
 void Parameters::update_omega(Data& dat, Transformations& transf) {
   double rate;
   for (arma::uword r = 0; r < dat.nreg; r++) {
-      rate = .5 * arma::dot(delta.col(r), arma::square(dat.response.col(r) -
+      rate = prior_omega_rate + 
+        .5 * arma::dot(delta.col(r), arma::square(dat.response.col(r) -
         transf.fit.col(r)));
-    omega(r) = R::rgamma(posterior_omega_shape, 1. / (prior_omega_rate + rate));
+    omega(r) = R::rgamma(posterior_omega_shape, 1. / rate);
   }
 }
 
@@ -51,7 +53,6 @@ void Parameters::update_delta(Data& dat, Transformations& transf) {
 }
 */
 
-// Need to update fit here
 void Parameters::update_eta(Data& dat, Transformations& transf) {
   arma::uword first, last, first_eta, last_eta;
   arma::vec b, yt;
@@ -194,6 +195,7 @@ void Parameters::update_phi(const Data& dat, Transformations& transf) {
   b = arma::zeros(dat.nreg * dat.ldim);
   diagomega = arma::diagmat(omega);
   eta_sum = arma::zeros(dat.ldim, dat.ldim);
+  transf.fit.zeros();
   for (arma::uword r = 0; r < dat.nreg; r++) {
     b.zeros();
     eta_sum.zeros();
@@ -209,10 +211,22 @@ void Parameters::update_phi(const Data& dat, Transformations& transf) {
     Q = arma::kron(eta_sum, diagomega) + 
       arma::kron(transf.C_rho, arma::eye(dat.nreg, dat.nreg));
     transf.phi_lin_constr.shed_rows(r_ind);
-    phi_temp = bayesreg_orth(b, Q, transf.phi_lin_constr);
+    // phi_temp = bayesreg_orth(b, Q, transf.phi_lin_constr);
+    phi_temp = bayesreg(b, Q);
+    if (r == 0) {
+      // Rcpp::Rcout << phi_temp.rows(0, 4) << "\n";
+    }
+    // Rcpp::Rcout << phi_temp(0,0) << "\n";
+    // Rcpp::Rcout << r << "\n";
     for (arma::uword l = 0; l < dat.ldim; l++) {
       norm = arma::norm(phi_temp.rows(l * dat.nreg, (l + 1) * dat.nreg - 1));
       phi.slice(l).col(r) = phi_temp.rows(l * dat.nreg, (l + 1) * dat.nreg - 1) / norm;
+      if (r == 0) {
+        if (l == 0) {
+          // Rcpp::Rcout << "phi_temp: " << phi_temp.rows(l * dat.nreg, (l + 1) * dat.nreg - 1) / norm << "\n";
+          
+        }
+      }
       transf.phi_lin_constr.insert_rows(l * dat.nreg + r, arma::rowvec(dat.nreg * dat.ldim, arma::fill::zeros));
       transf.phi_lin_constr.row(l * dat.nreg + r).cols(l * dat.nreg, (l + 1) * dat.nreg - 1) =
         phi.slice(l).col(r).t();
@@ -220,8 +234,26 @@ void Parameters::update_phi(const Data& dat, Transformations& transf) {
         eta.row(i * dat.nreg + r).col(l) = eta.row(i * dat.nreg + r).col(l) * norm;
       }
     }
-    
-    // phi.subcube(0, r, 0, dat.nreg, r, dat.ldim) = phi_temp.reshape(dat.nreg, dat.ldim);
-    // phi.col(r) = phi_temp.reshape(dat.nreg, dat.ldim, 1);
   }
+  
+  for (arma::uword i = 0; i < dat.nsub; i++) {
+    for (arma::uword l = 0; l < dat.ldim; l++) {
+      transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) = transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) +
+        transf.psi.col(l) * (eta.col(l).rows(i * dat.nreg, (i + 1) * dat.nreg - 1).t() *
+        phi.slice(l).t());
+    }
+  }
+}
+
+void Parameters::update_rho(const Data &dat, Transformations &transf) {
+  double loglik = 0;
+  arma::mat C_rho = rho * transf.ones_mat + (1 - rho) * arma::eye(dat.ldim, dat.ldim);
+  arma::mat x = arma::mat(dat.nreg * dat.nreg, dat.ldim);
+  for (arma::uword r = 0; r < dat.nreg; r++) {
+    for (arma::uword rr = 0; rr < dat.nreg; rr++) {
+      x.row(rr + r * dat.nreg) = arma::vec(phi.tube(r, rr)).t();
+    }
+  }
+  loglik = arma::accu(dmvnrm_arma_fast(x, arma::zeros<arma::rowvec>(dat.ldim), C_rho, true));
+  Rcpp::Rcout << "loglik: " << loglik << "\n";
 }

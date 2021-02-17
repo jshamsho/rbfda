@@ -38,6 +38,7 @@ void Sampler::sample() {
       pars.update_xi_eta(dat, transf);
       pars.update_zeta(dat, transf);
       pars.update_phi(dat, transf);
+      pars.update_rho(dat, transf);
     }
     progress_bar.increment();
     write_samples();
@@ -56,6 +57,7 @@ void Sampler::write_samples() {
   pars.zeta_container.col(current_iter) = pars.zeta;
   pars.eta_container.slice(current_iter) = pars.eta;
   pars.phi_container(current_iter) = pars.phi;
+  pars.rho_container(current_iter) = pars.rho;
   current_iter++;
 }
 

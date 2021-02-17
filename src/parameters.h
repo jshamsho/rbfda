@@ -29,7 +29,7 @@ class Parameters {
     double delta_eta_nu = 5;
     double delta_beta_nu = 4;
     double rho = .5;
-    arma::vec omega, nup, zeta;
+    arma::vec omega, nup, zeta, rho_container;
     arma::mat lambda, sigmasqeta, sigmasqetai, delta, eta, xi_eta, delta_eta,
       beta, delta_beta;
     arma::cube phi;
@@ -55,5 +55,6 @@ class Parameters {
     void update_lambda(const Data&, Transformations&);
     void update_zeta(const Data&, Transformations&);
     void update_phi(const Data&, Transformations&);
+    void update_rho(const Data&, Transformations&);
 };
 #endif
