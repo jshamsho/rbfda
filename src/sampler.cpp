@@ -37,7 +37,7 @@ void Sampler::sample() {
       pars.update_omega(dat, transf);
       pars.update_xi_eta(dat, transf);
       pars.update_zeta(dat, transf);
-      pars.update_phi(dat, transf);
+      // pars.update_phi(dat, transf);
       pars.update_rho(dat, transf);
     }
     progress_bar.increment();
@@ -71,6 +71,7 @@ Rcpp::List Sampler::get_samples() {
                             Rcpp::Named("xi_eta", pars.xi_eta_container),
                             Rcpp::Named("zeta", pars.zeta_container),
                             Rcpp::Named("phi", pars.phi_container),
+                            Rcpp::Named("rho", pars.rho_container),
                             Rcpp::Named("fit", transf.fit),
                             Rcpp::Named("phi_constr", transf.phi_lin_constr));
 }

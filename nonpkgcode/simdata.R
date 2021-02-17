@@ -1,7 +1,7 @@
 library(mgcv)
 nt <- 100
 tt <- seq(from = 0, to = 1, length.out = nt)
-nreg <- 3
+nreg <- 9
 nsub <- 50
 ndf <- 25
 d <- 2
@@ -14,6 +14,8 @@ for (i in 1:nt) {
     kern[i, j] <- 5 * sqexp(tt[i], tt[j])
   }
 }
+eigenfuncs <- eigen(kern)$vectors
+
 Y <- matrix(rnorm(nsub * nt * nreg, sd = .05), nrow = nsub * nt, ncol = nreg)
 Y1 <- mvrnorm(nsub * nreg, mu = rep(0, nt), Sigma = kern + .05 * diag(nt)) %>% t() %>% matrix(nrow = nsub * nt, ncol = nreg)
 # Y[1,1] <- NA
@@ -24,7 +26,7 @@ basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "tp", m = 2), data.frame(tt), ab
 B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
 matplot(tt, B, xlab = "time", ylab = "spline", type = "l")
-microbenchmark::microbenchmark(result <- run_mcmc(Y1, X, B, tt, penalty, 4, 5, 100, 1), times = 1)
+microbenchmark::microbenchmark(result <- run_mcmc(Y1, X, B, tt, penalty, 4, 1000, 100, 1), times = 1)
 pcomp <- princomp(Y1)
 matplot(pcomp$loadings[,1:3], type = "l")
 pracma::trapz(tt, pcomp$loadings[,1] * pcomp$loadings[,3])

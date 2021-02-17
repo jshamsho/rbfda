@@ -25,10 +25,11 @@ class Parameters {
     double prior_omega_shape = 0;
     double prior_omega_rate = 0;
     double posterior_omega_shape;
-    double delta_nu = 5;
-    double delta_eta_nu = 5;
+    double delta_eta_nu = 30;
     double delta_beta_nu = 4;
-    double rho = .5;
+    double rho_shape1 = 1, rho_shape2 = 1;
+    double old_logpost = -arma::datum::inf;
+    double rho;
     arma::vec omega, nup, zeta, rho_container;
     arma::mat lambda, sigmasqeta, sigmasqetai, delta, eta, xi_eta, delta_eta,
       beta, delta_beta;
