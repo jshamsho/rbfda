@@ -44,7 +44,7 @@ class Parameters {
     // zeta_container = arma::mat(dat.ldim, dat.iter);
     // delta_eta_container = arma::mat(dat.nreg, dat.ldim, dat.iter);
     double prior_shape = 0;
-    Parameters(Data&);
+    Parameters(Data&, Rcpp::Nullable<Rcpp::List>);
     Parameters() {};
     void update_omega(Data&, Transformations&);
     void update_delta(Data&, Transformations&);

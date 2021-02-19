@@ -4,14 +4,7 @@
 #include "parameters.h"
 #include "transformations.h"
 #include "sampler.h"
-/*
-#include "Utils.h"
-#include "Data.h"
-#include "Parameters.h"
-#include "Transformations.h"
-#include "GaussTransformations.h"
-#include "Sampler.h"
-*/
+
 // [[Rcpp::depends(RcppProgress)]]
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -39,15 +32,21 @@ Rcpp::List run_mcmc(arma::mat response, arma::mat design,
                     arma::mat basis, arma::vec time,
                     arma::mat penalty,
                     arma::uword ldim, arma::uword iter, arma::uword burnin,
-                    arma::uword thin=1) {
+                    arma::uword thin = 1, Rcpp::Nullable<Rcpp::List> init_ = R_NilValue) {
   
   Data dat(response, design,
            basis, time,
            penalty, ldim,
            iter, burnin, thin);
-  
-  Parameters pars(dat);
+  Parameters pars(dat, init_);
+  // pars.eta = eta;
+  // pars.phi = phi;
+  // pars.lambda = lambda;
   Transformations transf(dat, pars);
+  // transf.psi.zeros();
+  // transf.psi_lin_constr.zeros();
+  // transf.psi = psi;
+  // transf.psi_lin_constr = transf.psi.t() * dat.basis;
   Sampler mysampler(dat, pars, transf);
   mysampler.sample();
   Rcpp::List return_me;

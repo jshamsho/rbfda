@@ -1,10 +1,12 @@
 library(mgcv)
+source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/initialize_mcmc.R")
 nt <- 100
 tt <- seq(from = 0, to = 1, length.out = nt)
 nreg <- 9
 nsub <- 50
 ndf <- 25
 d <- 2
+ldim <- 4
 sqexp <- function(t, tp) {
   exp(-(t - tp)^2 / .2)
 }
@@ -15,61 +17,40 @@ for (i in 1:nt) {
   }
 }
 eigenfuncs <- eigen(kern)$vectors
-
-Y <- matrix(rnorm(nsub * nt * nreg, sd = .05), nrow = nsub * nt, ncol = nreg)
-Y1 <- mvrnorm(nsub * nreg, mu = rep(0, nt), Sigma = kern + .05 * diag(nt)) %>% t() %>% matrix(nrow = nsub * nt, ncol = nreg)
-# Y[1,1] <- NA
-# Y[1,1:nreg] <- NA
-# Y[2,1:nreg] <- NA
-X <- matrix(rnorm(nsub * d), nrow = nsub, ncol = d)
-basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "tp", m = 2), data.frame(tt), absorb.cons = FALSE)
+eta <- matrix(0, nsub * nreg, ldim)
+sigma <- ldim:1
+for (l in 1:ldim) {
+  for (i in 1:nsub) {
+    for (r in 1:nreg) {
+      eta[(i - 1) * nreg + r, l] <- rnorm(1, sd = sigma[l])
+    }
+  }
+}
+phi <- array(dim = c(nreg, nreg, ldim))
+for (l in 1:ldim) {
+  phi[,,l] <- diag(nreg)
+}
+Y <- matrix(0, nsub * nt, ncol = nreg)
+for (r in 1:nreg) {
+  for (i in 1:nsub) {
+    for (l in 1:ldim) {
+      Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + 
+        c(eigenfuncs[,l] %*% t(eta[((i - 1) * nreg + 1):(i * nreg), l]) %*% t(phi[,,l])) + c(rnorm(nt * nreg, sd = .1))
+      
+    }
+  }
+}
+X <- cbind(rep(1, nsub), matrix(rnorm(nsub * (d - 1)), nrow = nsub, ncol = d - 1))
+basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2), data.frame(tt), absorb.cons = FALSE)
 B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
 matplot(tt, B, xlab = "time", ylab = "spline", type = "l")
-microbenchmark::microbenchmark(result <- run_mcmc(Y1, X, B, tt, penalty, 4, 1000, 100, 1), times = 1)
-pcomp <- princomp(Y1)
-matplot(pcomp$loadings[,1:3], type = "l")
-pracma::trapz(tt, pcomp$loadings[,1] * pcomp$loadings[,3])
-pracma::trapz(tt, pcomp$loadings[,1] * pcomp$loadings[,1])
-
-l2norms <- numeric(3)
-u <- matrix(0, nrow = nt, ncol = 3)
-proj <- matrix(0, nrow = nt, ncol = 3)
-orthf <- matrix(0, nrow = nt, ncol = 3)
-u[,1] <- pcomp$loadings[,1]
-orthf[,1] <- u[,1] / sqrt(pracma::trapz(tt, u[,1] * u[,1]))
-proj[,1] <- pracma::trapz(tt, pcomp$loadings[,2] * pcomp$loadings[,1]) /
-  pracma::trapz(tt, u[,1] * u[,1]) * pcomp$loadings[,1]
-u[,2] <- pcomp$loadings[,2] - proj[,1]
-orthf[,2] <- u[,2] / sqrt(pracma::trapz(tt, u[,2] * u[,2]))
-proj[,2] <- pracma::trapz(tt, u[,1] * pcomp$loadings[,3]) / pracma::trapz(tt, u[,1] * u[,1]) * u[,1]
-proj[,3] <- pracma::trapz(tt, u[,2] * pcomp$loadings[,3]) / pracma::trapz(tt, u[,2] * u[,2]) * u[,2]
-
-u[,3] <- pcomp$loadings[,3] - proj[,2] - proj[,3]
-orthf[,3] <- u[,3] / sqrt(pracma::trapz(tt, u[,3] * u[,3]))
-pracma::trapz(tt, orthf[,2] * orthf[,3])
-matlines(orthf, type = "-o")
-
-myfunc <- function(p, tau) {
-  lambda_j <- abs(rt(p, 1))
-  k_vec <- 1 / (1 + tau^2 * p *lambda_j^2)
-  m_eff <- sum(1 - k_vec)
-  m_eff
+init_mcmc <- initialize_mcmc(Y, tt, nt, B)
+microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, l, 1000, 100, 1, init_mcmc), times = 1)
+plot(B %*% result$samples$lambda[,1,1000], type = "l")
+for (i in 501:1000) {
+  lines(B %*% result$samples$lambda[,1,i])
 }
-hist(sapply(1:10000, function(i) myfunc(20, .1)))
 
-p <- 6
-l <- 3
-rho <- .8
-corrmat <- rho * outer(rep(1, l), rep(1, l)) + diag(1-rho, l)
-M <- mvrnorm(10, mu = rep(0, l), Sigma = corrmat)
-M
-plot(M[,1], M[,2])
-kronecker(corrmat, diag(p))
-
-
-sigma <- 1:5
-kronecker(diag(sigma), diag(10)) # correct
-
-kronecker(diag(10), diag(sigma))
-diag(1:5)
+plot(Y[1:nt,4])
+lines(result$samples$fit[1:nt,4], col = "blue")

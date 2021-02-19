@@ -1,13 +1,6 @@
 #include "sampler.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
-/*
-Sampler::Sampler(Data& dat, Parameters& pars, Transformations& transf) {
-  this->dat = dat;
-  this->pars = pars;
-  this->transf = transf;
-}
-*/
 Rcpp::List Sampler::write_data() {
   return(dat.write_data());
 }
@@ -30,14 +23,14 @@ void Sampler::sample() {
       }
       transf.complete_response(dat, pars);
       pars.update_lambda(dat, transf);
-      pars.update_beta(dat, transf);
-      pars.update_delta_beta(dat, transf);
-      pars.update_delta_eta(dat, transf);
-      pars.update_eta(dat, transf);
+      // pars.update_beta(dat, transf);
+      // pars.update_delta_beta(dat, transf);
+      // pars.update_delta_eta(dat, transf);
+      // pars.update_eta(dat, transf);
       pars.update_omega(dat, transf);
-      pars.update_xi_eta(dat, transf);
+      // pars.update_xi_eta(dat, transf);
       pars.update_zeta(dat, transf);
-      // pars.update_phi(dat, transf);
+      pars.update_phi(dat, transf);
       pars.update_rho(dat, transf);
     }
     progress_bar.increment();
