@@ -22,7 +22,8 @@ sigma <- ldim:1
 for (l in 1:ldim) {
   for (i in 1:nsub) {
     for (r in 1:nreg) {
-      eta[(i - 1) * nreg + r, l] <- rnorm(1, sd = abs(-l) * 1 / r)
+      print((ldim - l + 1) * 1 / r)
+      eta[(i - 1) * nreg + r, l] <- rnorm(1, sd = (ldim - l + 1) * 1 / r)
     }
   }
 }
@@ -32,8 +33,8 @@ for (r in 1:nreg) {
   if (orthmat[r,r] < 0) orthmat[,r] <- -orthmat[,r]
 }
 for (l in 1:ldim) {
-  phi[,,l] <- diag(nreg)
-  # phi[,,l] <- orthmat
+  # phi[,,l] <- diag(nreg)
+  phi[,,l] <- orthmat
   # phi[,,l] <- rWishart(1, 10, diag(nreg))
   # phi[,,l] <- eigen(phi[,,l])$vectors
   # phi[,,l] <- pracma::randortho(nreg)
@@ -70,7 +71,7 @@ basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2), data.frame(tt), ab
 B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
 matplot(tt, B, xlab = "time", ylab = "spline", type = "l")
-init_mcmc <- initialize_mcmc(Y, tt, nt, B)
+init_mcmc <- initialize_mcmc(Y, tt, nt, B, X, ldim = 4)
 microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, l, 1000, 100, 1, init_mcmc), times = 1)
 plot(B %*% result$samples$lambda[,1,1000], type = "l")
 for (i in 501:1000) {

@@ -1,5 +1,5 @@
 library(fdapace)
-initialize_mcmc <- function(Y, tt, nt, B, ldim = NULL, cumfve = NULL) {
+initialize_mcmc <- function(Y, tt, nt, B, X, ldim = NULL, cumfve = NULL) {
   nsub <- nrow(Y) / nt
   nreg <- ncol(Y)
   L <- list()
@@ -68,7 +68,18 @@ initialize_mcmc <- function(Y, tt, nt, B, ldim = NULL, cumfve = NULL) {
       phi_mat[(r - 1) * nreg + rp, ] <- phi1[rp,r,]
     }
   }
+  beta <- matrix(0, nreg * ncol(X), fpca1$selectK)
+  d <- ncol(X)
+  for (l in 1:fpca1$selectK) {
+    for (r in 1:nreg) {
+      seqr <- seq(from = r, to = nreg * nsub, by = nreg)
+      etar <- eta[seqr, l]
+      beta[((r - 1) * d + 1):(r * d), l] <- solve(t(X) %*% X, t(X) %*% etar)
+    }
+  }
   rho <- mean(cor(phi_mat)[upper.tri(cor(phi_mat))])
   alpha <- mean(diag(cov(phi_mat)))
-  list(eta = eta, phi = phi2, lambda = lambda, omega = omega, rho = rho, alpha = alpha, phi2 = phi_mat)
+  list(eta = eta, phi = phi2, lambda = lambda,
+       omega = omega, rho = rho, alpha = alpha,
+       phi2 = phi_mat, beta = beta)
 }
