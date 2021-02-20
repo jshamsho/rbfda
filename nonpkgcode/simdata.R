@@ -3,7 +3,7 @@ source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/initialize_m
 nt <- 100
 tt <- seq(from = 0, to = 1, length.out = nt)
 nreg <- 9
-nsub <- 50
+nsub <- 500
 ndf <- 25
 d <- 2
 ldim <- 4
@@ -22,14 +22,39 @@ sigma <- ldim:1
 for (l in 1:ldim) {
   for (i in 1:nsub) {
     for (r in 1:nreg) {
-      eta[(i - 1) * nreg + r, l] <- rnorm(1, sd = sigma[l])
+      eta[(i - 1) * nreg + r, l] <- rnorm(1, sd = abs(-l) * 1 / r)
     }
   }
 }
 phi <- array(dim = c(nreg, nreg, ldim))
+orthmat <- pracma::randortho(nreg)
+for (r in 1:nreg) {
+  if (orthmat[r,r] < 0) orthmat[,r] <- -orthmat[,r]
+}
 for (l in 1:ldim) {
   phi[,,l] <- diag(nreg)
+  # phi[,,l] <- orthmat
+  # phi[,,l] <- rWishart(1, 10, diag(nreg))
+  # phi[,,l] <- eigen(phi[,,l])$vectors
+  # phi[,,l] <- pracma::randortho(nreg)
+  # phi[,,l] <- matrix(rnorm(nreg * nreg), nreg, nreg)
+  # phi[,,l] <- Re(eigen(phi[,,l])$vectors)
 }
+scale <- .2
+rho <- .9
+C_rho <- scale * rho * rep(1, ldim) %*% t(rep(1, ldim)) + scale * (1 - rho) * diag(ldim)
+phi_mat <- matrix(0, nrow = nreg^2, ldim)
+log_phi <- 0
+for (r in 1:nreg) {
+  for (rp in 1:nreg) {
+    x <- phi[r, rp, ]
+    phi_mat[(r - 1) * nreg + rp, ] <- x
+    log_phi <- log_phi + mvtnorm::dmvnorm(x, rep(0, ldim), sigma = C_rho, log = TRUE)
+  }
+}
+sum(mvtnorm::dmvnorm(phi_mat, rep(0, ldim), sigma = C_rho, log = TRUE))
+cov(phi_mat)
+log_phi
 Y <- matrix(0, nsub * nt, ncol = nreg)
 for (r in 1:nreg) {
   for (i in 1:nsub) {

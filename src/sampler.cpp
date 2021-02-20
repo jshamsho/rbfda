@@ -30,7 +30,7 @@ void Sampler::sample() {
       pars.update_omega(dat, transf);
       // pars.update_xi_eta(dat, transf);
       pars.update_zeta(dat, transf);
-      pars.update_phi(dat, transf);
+      // pars.update_phi(dat, transf);
       pars.update_rho(dat, transf);
     }
     progress_bar.increment();

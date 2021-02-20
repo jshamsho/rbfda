@@ -57,7 +57,7 @@ void Transformations::initialize_fit(Data& dat, Parameters& pars) {
     }
   }
   
-  C_rho = pars.rho * ones_mat + (1 - pars.rho) * arma::eye(dat.ldim, dat.ldim);
+  C_rho = .2 * pars.rho * ones_mat + .2 * (1 - pars.rho) * arma::eye(dat.ldim, dat.ldim);
 }
 
 void Transformations::complete_response(Data& dat, Parameters& pars) {

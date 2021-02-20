@@ -283,8 +283,9 @@ void Parameters::update_rho(const Data &dat, Transformations &transf) {
   double prior_old, prior_new, logratio, new_logpost,
     loglik_old, loglik_new, rho_oldmh, rho_newmh, rho_proposal;
   rho_proposal = R::runif(std::max(0., rho - offset), std::min(rho + offset, 1.));
-  arma::mat C_rho_proposal = rho_proposal * transf.ones_mat + 
-    (1 - rho_proposal) * arma::eye(dat.ldim, dat.ldim);
+  arma::mat C_rho_proposal = .2 * rho_proposal * transf.ones_mat + 
+                             .2 * (1 - rho_proposal) * arma::eye(dat.ldim, dat.ldim);
+  // Rcpp::Rcout << C_rho_proposal << "\n";
   arma::mat x = arma::mat(dat.nreg * dat.nreg, dat.ldim);
   for (arma::uword r = 0; r < dat.nreg; r++) {
     for (arma::uword rr = 0; rr < dat.nreg; rr++) {
@@ -310,4 +311,5 @@ void Parameters::update_rho(const Data &dat, Transformations &transf) {
     rho = rho_proposal;
     transf.C_rho = C_rho_proposal;
   }
+  // Rcpp::Rcout << "proposed: " << rho_newmh << "   old: " << rho_oldmh << "\n";
 }
