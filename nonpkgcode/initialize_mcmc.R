@@ -69,17 +69,19 @@ initialize_mcmc <- function(Y, tt, nt, B, X, ldim = NULL, cumfve = NULL) {
     }
   }
   beta <- matrix(0, nreg * ncol(X), fpca1$selectK)
+  preceta <- matrix(0, nreg, fpca1$selectK)
   d <- ncol(X)
   for (l in 1:fpca1$selectK) {
     for (r in 1:nreg) {
       seqr <- seq(from = r, to = nreg * nsub, by = nreg)
       etar <- eta[seqr, l]
       beta[((r - 1) * d + 1):(r * d), l] <- solve(t(X) %*% X, t(X) %*% etar)
+      preceta[r, l] <- 1 / var(etar)
     }
   }
   rho <- mean(cor(phi_mat)[upper.tri(cor(phi_mat))])
   alpha <- mean(diag(cov(phi_mat)))
   list(eta = eta, phi = phi2, lambda = lambda,
        omega = omega, rho = rho, alpha = alpha,
-       phi2 = phi_mat, beta = beta)
+       phi2 = phi_mat, beta = beta, preceta = preceta)
 }
