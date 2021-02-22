@@ -81,7 +81,9 @@ initialize_mcmc <- function(Y, tt, nt, B, X, ldim = NULL, cumfve = NULL) {
   }
   rho <- mean(cor(phi_mat)[upper.tri(cor(phi_mat))])
   alpha <- mean(diag(cov(phi_mat)))
-  list(eta = eta, phi = phi2, lambda = lambda,
+  C_rho_alpha <- mean(diag(cov(phi_mat)))
+  list(eta = eta, phi = phi2, phi_cube = phi1, lambda = lambda,
        omega = omega, rho = rho, alpha = alpha,
-       phi2 = phi_mat, beta = beta, preceta = preceta)
+       phi_mat = phi_mat, beta = beta,
+       preceta = preceta, C_rho_alpha = C_rho_alpha)
 }

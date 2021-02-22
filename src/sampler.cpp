@@ -30,8 +30,11 @@ void Sampler::sample() {
       pars.update_omega(dat, transf);
       // pars.update_xi_eta(dat, transf);
       pars.update_zeta(dat, transf);
-      // pars.update_phi(dat, transf);
+      pars.update_phi(dat, transf);
       pars.update_rho(dat, transf);
+      // pars.update_phi0(dat, transf);
+      // pars.update_tau_phi0(dat, transf);
+      // Rcpp::Rcout << transf.C_rho << "\n";
     }
     progress_bar.increment();
     write_samples();
@@ -50,7 +53,10 @@ void Sampler::write_samples() {
   pars.zeta_container.col(current_iter) = pars.zeta;
   pars.eta_container.slice(current_iter) = pars.eta;
   pars.phi_container(current_iter) = pars.phi;
+  pars.phi0_container.slice(current_iter) = pars.phi0;
   pars.rho_container(current_iter) = pars.rho;
+  pars.alpha_container(current_iter) = pars.alpha;
+  pars.tau_phi0_container.slice(current_iter) = pars.tau_phi0;
   current_iter++;
 }
 
@@ -65,6 +71,8 @@ Rcpp::List Sampler::get_samples() {
                             Rcpp::Named("zeta", pars.zeta_container),
                             Rcpp::Named("phi", pars.phi_container),
                             Rcpp::Named("rho", pars.rho_container),
+                            Rcpp::Named("phi0", pars.phi0_container),
+                            Rcpp::Named("tau_phi0", pars.tau_phi0_container),
                             Rcpp::Named("fit", transf.fit),
                             Rcpp::Named("phi_constr", transf.phi_lin_constr));
 }

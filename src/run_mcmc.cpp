@@ -8,7 +8,6 @@
 // [[Rcpp::depends(RcppProgress)]]
 // [[Rcpp::depends(RcppArmadillo)]]
 
-
 //' Run Markov-Chain Monte-Carlo
 //'
 //' Generate samples from the posterior distribution using Gibbs sampling and 
@@ -43,6 +42,7 @@ Rcpp::List run_mcmc(arma::mat response, arma::mat design,
   // pars.phi = phi;
   // pars.lambda = lambda;
   Transformations transf(dat, pars);
+  
   // transf.psi.zeros();
   // transf.psi_lin_constr.zeros();
   // transf.psi = psi;

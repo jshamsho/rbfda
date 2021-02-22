@@ -3,7 +3,7 @@ source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/initialize_m
 nt <- 100
 tt <- seq(from = 0, to = 1, length.out = nt)
 nreg <- 9
-nsub <- 500
+nsub <- 50
 ndf <- 25
 d <- 2
 ldim <- 4
@@ -34,21 +34,23 @@ for (r in 1:nreg) {
 }
 for (l in 1:ldim) {
   # phi[,,l] <- diag(nreg)
-  phi[,,l] <- orthmat
+  # phi[,,l] <- orthmat
   # phi[,,l] <- rWishart(1, 10, diag(nreg))
   # phi[,,l] <- eigen(phi[,,l])$vectors
-  # phi[,,l] <- pracma::randortho(nreg)
+  phi[,,l] <- orthmat
   # phi[,,l] <- matrix(rnorm(nreg * nreg), nreg, nreg)
   # phi[,,l] <- Re(eigen(phi[,,l])$vectors)
 }
-scale <- .2
-rho <- .9
+phi[,,3] <- pracma::randortho(nreg)
+scale <- init_mcmc$alpha
+rho <- .1
 C_rho <- scale * rho * rep(1, ldim) %*% t(rep(1, ldim)) + scale * (1 - rho) * diag(ldim)
 phi_mat <- matrix(0, nrow = nreg^2, ldim)
 log_phi <- 0
 for (r in 1:nreg) {
   for (rp in 1:nreg) {
-    x <- phi[r, rp, ]
+    # x <- phi[r, rp, ]
+    x <- phi[rp, r,]
     phi_mat[(r - 1) * nreg + rp, ] <- x
     log_phi <- log_phi + mvtnorm::dmvnorm(x, rep(0, ldim), sigma = C_rho, log = TRUE)
   }
@@ -57,14 +59,12 @@ sum(mvtnorm::dmvnorm(phi_mat, rep(0, ldim), sigma = C_rho, log = TRUE))
 cov(phi_mat)
 log_phi
 Y <- matrix(0, nsub * nt, ncol = nreg)
-for (r in 1:nreg) {
-  for (i in 1:nsub) {
-    for (l in 1:ldim) {
-      Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + 
-        c(eigenfuncs[,l] %*% t(eta[((i - 1) * nreg + 1):(i * nreg), l]) %*% t(phi[,,l])) + c(rnorm(nt * nreg, sd = .1))
-      
-    }
+for (i in 1:nsub) {
+  for (l in 1:ldim) {
+    Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + 
+      c(eigenfuncs[,l] %*% t(eta[((i - 1) * nreg + 1):(i * nreg), l]) %*% t(phi[,,l])) 
   }
+  Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + c(rnorm(nt * nreg, sd = .1))
 }
 X <- cbind(rep(1, nsub), matrix(rnorm(nsub * (d - 1)), nrow = nsub, ncol = d - 1))
 basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2), data.frame(tt), absorb.cons = FALSE)
@@ -73,6 +73,23 @@ penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
 matplot(tt, B, xlab = "time", ylab = "spline", type = "l")
 init_mcmc <- initialize_mcmc(Y, tt, nt, B, X, ldim = 4)
 microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, l, 1000, 100, 1, init_mcmc), times = 1)
+
+scale <- init_mcmc$alpha
+rho <- .9
+C_rho <- scale * rho * rep(1, ldim) %*% t(rep(1, ldim)) + scale * (1 - rho) * diag(ldim)
+phi_mat <- matrix(0, nrow = nreg^2, ldim)
+log_phi <- 0
+for (r in 1:nreg) {
+  for (rp in 1:nreg) {
+    # x <- phi[r, rp, ]
+    x <- result$samples$phi[[100]][rp,r,]
+    phi_mat[(r - 1) * nreg + rp, ] <- x
+    log_phi <- log_phi + mvtnorm::dmvnorm(x, rep(0, ldim), sigma = C_rho, log = TRUE)
+  }
+}
+sum(mvtnorm::dmvnorm(phi_mat, rep(0, ldim), sigma = C_rho, log = TRUE))
+pairs(phi_mat)
+
 plot(B %*% result$samples$lambda[,1,1000], type = "l")
 for (i in 501:1000) {
   lines(B %*% result$samples$lambda[,1,i])
