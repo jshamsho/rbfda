@@ -41,7 +41,7 @@ for (l in 1:ldim) {
   # phi[,,l] <- matrix(rnorm(nreg * nreg), nreg, nreg)
   # phi[,,l] <- Re(eigen(phi[,,l])$vectors)
 }
-phi[,,3] <- pracma::randortho(nreg)
+# phi[,,3] <- pracma::randortho(nreg)
 scale <- init_mcmc$alpha
 rho <- .1
 C_rho <- scale * rho * rep(1, ldim) %*% t(rep(1, ldim)) + scale * (1 - rho) * diag(ldim)
@@ -75,14 +75,14 @@ init_mcmc <- initialize_mcmc(Y, tt, nt, B, X, ldim = 4)
 microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, l, 1000, 100, 1, init_mcmc), times = 1)
 
 scale <- init_mcmc$alpha
-rho <- .9
+rho <- .5
 C_rho <- scale * rho * rep(1, ldim) %*% t(rep(1, ldim)) + scale * (1 - rho) * diag(ldim)
 phi_mat <- matrix(0, nrow = nreg^2, ldim)
 log_phi <- 0
 for (r in 1:nreg) {
   for (rp in 1:nreg) {
     # x <- phi[r, rp, ]
-    x <- result$samples$phi[[100]][rp,r,]
+    x <- result$samples$phi[[1000]][rp,r,]
     phi_mat[(r - 1) * nreg + rp, ] <- x
     log_phi <- log_phi + mvtnorm::dmvnorm(x, rep(0, ldim), sigma = C_rho, log = TRUE)
   }
@@ -90,10 +90,21 @@ for (r in 1:nreg) {
 sum(mvtnorm::dmvnorm(phi_mat, rep(0, ldim), sigma = C_rho, log = TRUE))
 pairs(phi_mat)
 
-plot(B %*% result$samples$lambda[,1,1000], type = "l")
-for (i in 501:1000) {
+plot(B %*% result$samples$lambda[,1,1], type = "l")
+for (i in 500:1000) {
   lines(B %*% result$samples$lambda[,1,i])
 }
+lines(-eigenfuncs[,1], col = "red")
+r <- 1
+i <- 1
+plot(Y[((i - 1) * nt + 1):(i * nt),r])
+seqr <- ((i - 1) * nreg + 1):(i * nreg)
+for (i in 501:1000) {
+  tmpsum <- numeric(nt)
+  for (l in 1:ldim) {
+    tmpsum <- tmpsum + B %*% result$samples$lambda[,l, i] %*% t(result$samples$phi[[i]][r,,l]) %*% result$samples$eta[seqr, l, i]
+  }
+  lines(tmpsum, col = "blue")
+}
 
-plot(Y[1:nt,4])
 lines(result$samples$fit[1:nt,4], col = "blue")

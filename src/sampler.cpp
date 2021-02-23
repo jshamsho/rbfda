@@ -23,15 +23,23 @@ void Sampler::sample() {
       }
       transf.complete_response(dat, pars);
       pars.update_lambda(dat, transf);
-      // pars.update_beta(dat, transf);
-      // pars.update_delta_beta(dat, transf);
-      // pars.update_delta_eta(dat, transf);
-      // pars.update_eta(dat, transf);
+      // pars.beta.zeros();
+      pars.update_beta(dat, transf);
+      // pars.beta.zeros();
+      pars.update_delta_beta(dat, transf);
+      // Rcpp::Rcout << "entering eta\n";
+      pars.update_eta(dat, transf);
+      // Rcpp::Rcout << "done with eta\n";
       pars.update_omega(dat, transf);
-      // pars.update_xi_eta(dat, transf);
+      // Rcpp::Rcout << "entering xi_eta\n";
+      pars.update_xi_eta(dat, transf);
+      // Rcpp::Rcout << "done with xi_eta\n";
       pars.update_zeta(dat, transf);
       pars.update_phi(dat, transf);
       pars.update_rho(dat, transf);
+      // Rcpp::Rcout << "eta col size: " << arma::size(pars.eta.col(0)) << "\n";
+      
+      pars.update_delta_eta(dat, transf);
       // pars.update_phi0(dat, transf);
       // pars.update_tau_phi0(dat, transf);
       // Rcpp::Rcout << transf.C_rho << "\n";
@@ -57,6 +65,8 @@ void Sampler::write_samples() {
   pars.rho_container(current_iter) = pars.rho;
   pars.alpha_container(current_iter) = pars.alpha;
   pars.tau_phi0_container.slice(current_iter) = pars.tau_phi0;
+  pars.sigmasqetai_container.slice(current_iter) = pars.sigmasqetai;
+  pars.delta_eta_container.slice(current_iter) = pars.delta_eta;
   current_iter++;
 }
 
@@ -71,6 +81,8 @@ Rcpp::List Sampler::get_samples() {
                             Rcpp::Named("zeta", pars.zeta_container),
                             Rcpp::Named("phi", pars.phi_container),
                             Rcpp::Named("rho", pars.rho_container),
+                            Rcpp::Named("sigmasqetai", pars.sigmasqetai_container),
+                            Rcpp::Named("delta_eta", pars.delta_eta_container),
                             Rcpp::Named("phi0", pars.phi0_container),
                             Rcpp::Named("tau_phi0", pars.tau_phi0_container),
                             Rcpp::Named("fit", transf.fit),

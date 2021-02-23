@@ -30,6 +30,7 @@ class Parameters {
     double rho_shape1 = 1, rho_shape2 = 1;
     double old_logpost = -arma::datum::inf;
     double rho, alpha = 1;
+    double a1, a2;
     arma::vec omega, nup, zeta, rho_container, alpha_container;
     arma::mat lambda, sigmasqeta, sigmasqetai, delta, eta, xi_eta, delta_eta,
       beta, delta_beta, phi0, tau_phi0;
