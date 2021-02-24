@@ -15,7 +15,10 @@ Parameters::Parameters(Data& dat, Rcpp::Nullable<Rcpp::List> init_ = R_NilValue)
   delta_eta_container = arma::cube(dat.nreg, dat.ldim, dat.iter);
   tau_phi0_container = arma::cube(dat.nreg, dat.nreg, dat.iter);
   rho_container = arma::vec(dat.iter);
+  a1_container = arma::vec(dat.iter);
+  a2_container = arma::vec(dat.iter);
   alpha_container = arma::vec(dat.iter);
+  nu_container = arma::vec(dat.iter);
   phi = arma::cube(dat.nreg, dat.nreg, dat.ldim, arma::fill::zeros);
   if (init_.isNotNull()) {
     Rcpp::List init(init_);
@@ -73,6 +76,17 @@ Parameters::Parameters(Data& dat, Rcpp::Nullable<Rcpp::List> init_ = R_NilValue)
 void Parameters::update_omega(Data& dat, Transformations& transf) {
   double rate, shape;
   shape = .5 * dat.nt * dat.nsub;
+  arma::vec eta_temp;
+  arma::mat eta_phi = arma::mat(dat.nsub, dat.nreg);
+  transf.fit.zeros();
+  for (arma::uword i = 0; i < dat.nsub; i++) {
+    for (arma::uword l = 0; l < dat.ldim; l++) {
+      eta_temp = eta.col(l).rows(i * dat.nreg, (i + 1) * dat.nreg - 1);
+      eta_phi.row(i) = eta_temp.t() * phi.slice(l).t();
+      transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) = transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) +
+        transf.psi.col(l) * eta_phi.row(i);
+    }
+  }
   for (arma::uword r = 0; r < dat.nreg; r++) {
       rate = prior_omega_rate +
         .5 * arma::dot(delta.col(r), arma::square(dat.response.col(r) -
@@ -97,37 +111,61 @@ void Parameters::update_delta(Data& dat, Transformations& transf) {
 */
 
 void Parameters::update_eta(Data& dat, Transformations& transf) {
+  arma::mat eta_sum, eta_phi;
+  eta_sum = arma::mat(dat.nreg, dat.nreg, arma::fill::zeros);
+  eta_phi = arma::mat(dat.nsub, dat.nreg);
   arma::uword first, last, first_eta, last_eta;
-  arma::vec b, yt;
+  arma::vec b, yt, eta_temp;
   arma::mat Q, beta_mat, diagsigma, diagomega = arma::diagmat(omega);
-  transf.fit.zeros();
+  // transf.fit.zeros();
+  b = arma::vec(dat.nreg, arma::fill::zeros);
   for (arma::uword i = 0; i < dat.nsub; i++) {
     first = i * dat.nt, last = (i + 1) * dat.nt - 1;
     first_eta = i * dat.nreg, last_eta = i * dat.nreg + dat.nreg - 1;
     for (arma::uword l = 0; l < dat.ldim; l++) {
       diagsigma = arma::diagmat(sigmasqetai.rows(first_eta, last_eta).col(l));
-      yt = arma::trans((transf.psi.col(l).t() * dat.response.rows(first, last)) * phi.slice(l));
+      // yt = arma::trans((transf.psi.col(l).t() * dat.response.rows(first, last)) * phi.slice(l));
       beta_mat = arma::reshape(beta.col(l), dat.designdim, dat.nreg).t();
-      b = phi.slice(l).t() * diagomega * phi.slice(l) * yt +
+      // b = phi.slice(l).t() * diagomega * phi.slice(l) * yt +
+        // diagsigma * (beta_mat * dat.design.row(i).t());
+      b = phi.slice(l).t() * diagomega * (dat.response.rows(first, last).t() * transf.psi.col(l)) +
         diagsigma * (beta_mat * dat.design.row(i).t());
       Q = phi.slice(l).t() * diagomega * phi.slice(l) + diagsigma;
       eta.rows(first_eta, last_eta).col(l) = bayesreg(b, Q);
-      transf.fit.rows(first, last) = transf.fit.rows(first, last) +
-        transf.psi.col(l) * (eta.rows(first_eta, last_eta).col(l).t() * phi.slice(l).t());
+      // transf.fit.rows(first, last) = transf.fit.rows(first, last) +
+        // transf.psi.col(l) * (eta.rows(first_eta, last_eta).col(l).t() * phi.slice(l).t());
     }
   }
+  // transf.fit.zeros();
+  // for (arma::uword i = 0; i < dat.nsub; i++) {
+  //   for (arma::uword l = 0; l < dat.ldim; l++) {
+  //     eta_temp = eta.col(l).rows(i * dat.nreg, (i + 1) * dat.nreg - 1);
+  //     eta_phi.row(i) = eta_temp.t() * phi.slice(l).t();
+  //     transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) = transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) +
+  //       transf.psi.col(l) * eta_phi.row(i);
+  //   }
+  // }
 }
 
 void Parameters::update_xi_eta(Data& dat, Transformations& transf) {
-  double shape = .5 + delta_eta_nu / 2.;
+  double shape = .5 + nu / 2.;
   double rate = 0;
   arma::uword idx;
+  arma::mat delta_eta_cumprod = arma::mat(dat.nreg, dat.ldim);
+  arma::rowvec delta_eta_cumprod_init = arma::cumprod(delta_eta.row(0));
+  for (arma::uword l = 0; l < dat.ldim; l++) {
+    delta_eta_cumprod.col(l) = arma::cumprod(delta_eta.col(l));
+    if (l > 0) {
+      delta_eta_cumprod.col(l) = delta_eta_cumprod.col(l) * 
+        delta_eta_cumprod_init(l - 1);
+    }
+  }
   for (arma::uword r = 0; r < dat.nreg; r++) {
     for (arma::uword l = 0; l < dat.ldim; l++) {
       for (arma::uword i = 0; i < dat.nsub; i++) {
         idx = i * dat.nreg + r;
-        rate = delta_eta_nu +
-          std::pow(eta(idx, l) - transf.fit_eta(idx, l), 2) * sigmasqeta(r, l);
+        rate = nu / 2. + 
+          .5 * std::pow(eta(idx, l), 2) * delta_eta_cumprod(r, l);
         xi_eta(idx, l) = R::rgamma(shape, 1. / rate);
       }
     }
@@ -144,7 +182,7 @@ void Parameters::update_delta_eta(Data& dat, Transformations& transf) {
     delta_eta_cumprod.col(l) = arma::cumprod(delta_eta.col(l));
     if (l > 0) {
       delta_eta_cumprod.col(l) = delta_eta_cumprod.col(l) * 
-        delta_eta_cumprod_init(l);
+        delta_eta_cumprod_init(l - 1);
     }
   }
   for (arma::uword r = 0; r < dat.nreg; r++) {
@@ -253,20 +291,42 @@ void Parameters::update_lambda(const Data& dat, Transformations& transf) {
   eta_phi = arma::mat(dat.nsub, dat.nreg);
   diagomega = arma::diagmat(omega);
   b = arma::vec(dat.basisdim);
+  arma::mat tmprm = arma::vec(dat.basisdim);
+  arma::mat tmpad = arma::vec(dat.basisdim);
   for (arma::uword l = 0; l < dat.ldim; l++) {
+    tmprm.zeros();
+    tmpad.zeros();
     b.zeros();
     eta_sum.zeros();
-
     for (arma::uword i = 0; i < dat.nsub; i++) {
       eta_temp = eta.col(l).rows(i * dat.nreg, (i + 1) * dat.nreg - 1);
       eta_sum = eta_sum + eta_temp * eta_temp.t();
       eta_phi.row(i) = eta_temp.t() * phi.slice(l).t();
-      transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) = transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) -
-        transf.psi.col(l) * eta_phi.row(i);
-      b = b + (transf.bty.rows(i * dat.basisdim, (i + 1) * dat.basisdim - 1) -
-        dat.basis.t() * transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1)) *
-        diagomega * (eta_phi.row(i)).t();
+      for (arma::uword lp = 0; lp < dat.ldim; lp++) {
+        if (lp != l) {
+          tmprm = 
+            tmprm + 
+            transf.btb * lambda.col(lp) * 
+            (eta.col(lp).rows(i * dat.nreg, (i + 1) * dat.nreg - 1).t() * 
+            phi.slice(lp).t() * diagomega * eta_phi.row(i).t());
+        }
+      }
+      tmpad = 
+        tmpad + 
+        transf.bty.rows(i * dat.basisdim, (i + 1) * dat.basisdim - 1) * 
+        diagomega * eta_phi.row(i).t();
     }
+    b = tmpad - tmprm;
+      // eta_temp = eta.col(l).rows(i * dat.nreg, (i + 1) * dat.nreg - 1);
+      // eta_sum = eta_sum + eta_temp * eta_temp.t();
+      // eta_phi.row(i) = eta_temp.t() * phi.slice(l).t();
+      // transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) = transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) -
+        // transf.psi.col(l) * eta_phi.row(i);
+      // b = tmpad - tmprm;
+      // b = b + (transf.bty.rows(i * dat.basisdim, (i + 1) * dat.basisdim - 1) -
+        // dat.basis.t() * transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1)) *
+        // diagomega * (eta_phi.row(i)).t();
+  // }
     Q = arma::trace(phi.slice(l).t() * diagomega * phi.slice(l) * eta_sum) * transf.btb + zeta(l) * dat.penalty;
     // arma::uvec indices =arma::regspace<arma::uvec>(0, 1, dat.ldim - 1);
     // indices.shed_row(l);
@@ -282,22 +342,22 @@ void Parameters::update_lambda(const Data& dat, Transformations& transf) {
     transf.psi.col(l) = dat.basis * lambda.col(l);
     eta.col(l) = eta.col(l) * psi_norm;
     transf.psi_lin_constr.row(l) = transf.psi.col(l).t() * dat.basis;
-    for (arma::uword i = 0; i < dat.nsub; i++) {
+    // for (arma::uword i = 0; i < dat.nsub; i++) {
+      // eta_temp = eta.col(l).rows(i * dat.nreg, (i + 1) * dat.nreg - 1);
+      // eta_phi.row(i) = eta_temp.t() * phi.slice(l).t();
+      // transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) = transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) +
+        // transf.psi.col(l) * eta_phi.row(i);
+    // }
+  }
+  transf.fit.zeros();
+  for (arma::uword i = 0; i < dat.nsub; i++) {
+    for (arma::uword l = 0; l < dat.ldim; l++) {
       eta_temp = eta.col(l).rows(i * dat.nreg, (i + 1) * dat.nreg - 1);
       eta_phi.row(i) = eta_temp.t() * phi.slice(l).t();
       transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) = transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) +
         transf.psi.col(l) * eta_phi.row(i);
     }
   }
-  // transf.fit.zeros();
-  // for (arma::uword i = 0; i < dat.nsub; i++) {
-  //   for (arma::uword l = 0; l < dat.ldim; l++) {
-  //     eta_temp = eta.col(l).rows(i * dat.nreg, (i + 1) * dat.nreg - 1);
-  //     eta_phi.row(i) = eta_temp.t() * phi.slice(l).t();
-  //     transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) = transf.fit.rows(i * dat.nt, (i + 1) * dat.nt - 1) +
-  //       transf.psi.col(l) * eta_phi.row(i);
-  //   }
-  // }
 }
 
 void Parameters::update_zeta(const Data& dat, Transformations& transf) {
@@ -441,4 +501,71 @@ void Parameters::update_rho(const Data &dat, Transformations &transf) {
     transf.C_rho = C_rho_proposal;
   }
   // Rcpp::Rcout << "proposed: " << rho_newmh << "   old: " << rho_oldmh << "\n";
+}
+
+void Parameters::update_nu(const Data& dat, Transformations transf) {
+  double offset = .5;
+  double logratio,
+  loglik_old, loglik_new, nu_oldmh, nu_newmh, nu_proposal;
+  Rcpp::NumericVector xi_eta_vec = Rcpp::as<Rcpp::NumericVector>(Rcpp::wrap(arma::vectorise(xi_eta)));
+  nu_proposal = R::runif(std::max(2., nu - offset), std::min(nu + offset, 128.));
+  for (arma::uword l = 0; l < dat.ldim; l++) {
+    for (arma::uword i = 0; i < dat.nsub * dat.nreg; i++) {
+      loglik_old = loglik_old + R::dgamma(xi_eta(i, l), nu / 2., 2. / nu, true);
+      loglik_new = loglik_new + R::dgamma(xi_eta(i, l), nu_proposal / 2., 2. / nu_proposal, true);
+    }
+  }
+  nu_oldmh = loglik_old - R::dunif(nu, std::max(2., nu_proposal - offset),
+                                   std::min(nu_proposal + offset, 128.), true);
+  nu_newmh = loglik_new - R::dunif(nu_proposal, std::max(2., nu - offset),
+                                   std::min(nu + offset, 128.), true); 
+  logratio = nu_newmh - nu_oldmh;
+  if (R::runif(0, 1) < exp(logratio)) {
+    nu = nu_proposal;
+  }
+}
+
+void Parameters::update_a12(const Data& dat, Transformations& transf) {
+  double offset = .5;
+  double prior_old, prior_new, logratio, new_logpost,
+    loglik_old, loglik_new, a_oldmh, a_newmh, a_proposal;
+  a_proposal = R::runif(std::max(0., a1 - offset), a1 + offset);
+  for (arma::uword l = 0; l < dat.ldim; l++) {
+    loglik_new = loglik_new + R::dgamma(delta_eta.row(0)(l), a_proposal, 1, true);
+    loglik_old = loglik_old + R::dgamma(delta_eta.row(0)(l), a1, 1, true);
+  }
+  prior_new = R::dgamma(a_proposal, 2, 1, true);
+  prior_old = R::dgamma(a1, 2, 1, true);
+  new_logpost = loglik_new - prior_new;
+  old_logpost = loglik_old - prior_old;
+  a_newmh = new_logpost - R::dunif(a_proposal, std::max(0., a1 - offset),
+                                     a1 + offset, true);
+  a_oldmh = old_logpost - R::dunif(a1, std::max(0., a_proposal), 
+                                   a_proposal + offset, true);
+  logratio = a_newmh - a_oldmh;
+  if (R::runif(0, 1) < exp(logratio)) {
+    a1 = a_proposal;
+  }
+  
+  ////////
+  loglik_new = 0; loglik_old = 0;
+  a_proposal = R::runif(std::max(0., a2 - offset), a2 + offset);
+  for (arma::uword l = 1; l < dat.ldim; l++) {
+    for (arma::uword r = 0; r < dat.nreg; r++) {
+      loglik_new = loglik_new + R::dgamma(delta_eta(r, l), a_proposal, 1, true);
+      loglik_old = loglik_old + R::dgamma(delta_eta(r, l), a2, 1, true);
+    }
+  }
+  prior_new = R::dgamma(a_proposal, 2, 1, true);
+  prior_old = R::dgamma(a2, 2, 1, true);
+  new_logpost = loglik_new - prior_new;
+  old_logpost = loglik_old - prior_old;
+  a_newmh = new_logpost - R::dunif(a_proposal, std::max(0., a2 - offset),
+                                   a2 + offset, true);
+  a_oldmh = old_logpost - R::dunif(a2, std::max(0., a_proposal), 
+                                   a_proposal + offset, true);
+  logratio = a_newmh - a_oldmh;
+  if (R::runif(0, 1) < exp(logratio)) {
+    a2 = a_proposal;
+  }
 }

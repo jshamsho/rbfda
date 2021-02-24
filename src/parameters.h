@@ -25,13 +25,14 @@ class Parameters {
     double prior_omega_shape = 0;
     double prior_omega_rate = 0;
     double posterior_omega_shape;
-    double delta_eta_nu = 30;
     double delta_beta_nu = 4;
     double rho_shape1 = 1, rho_shape2 = 1;
     double old_logpost = -arma::datum::inf;
     double rho, alpha = 1;
     double a1, a2;
-    arma::vec omega, nup, zeta, rho_container, alpha_container;
+    double nu = 10;
+    arma::vec omega, nup, zeta, rho_container, alpha_container, nu_container,
+      a1_container, a2_container;
     arma::mat lambda, sigmasqeta, sigmasqetai, delta, eta, xi_eta, delta_eta,
       beta, delta_beta, phi0, tau_phi0;
     arma::cube phi, init_phi;
@@ -59,6 +60,8 @@ class Parameters {
     void update_phi(const Data&, Transformations&);
     void update_phi0(const Data&, Transformations&);
     void update_rho(const Data&, Transformations&);
+    void update_nu(const Data&, Transformations);
     void update_tau_phi0(const Data&, Transformations&);
+    void update_a12(const Data&, Transformations&);
 };
 #endif

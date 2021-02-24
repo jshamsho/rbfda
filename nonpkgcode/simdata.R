@@ -3,7 +3,7 @@ source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/initialize_m
 nt <- 100
 tt <- seq(from = 0, to = 1, length.out = nt)
 nreg <- 9
-nsub <- 50
+nsub <- 200
 ndf <- 25
 d <- 2
 ldim <- 4
@@ -36,14 +36,14 @@ for (l in 1:ldim) {
   # phi[,,l] <- diag(nreg)
   # phi[,,l] <- orthmat
   # phi[,,l] <- rWishart(1, 10, diag(nreg))
-  # phi[,,l] <- eigen(phi[,,l])$vectors
-  phi[,,l] <- orthmat
+  phi[,,l] <- pracma::randortho(nreg)
+  # phi[,,l] <- orthmat
   # phi[,,l] <- matrix(rnorm(nreg * nreg), nreg, nreg)
   # phi[,,l] <- Re(eigen(phi[,,l])$vectors)
 }
 # phi[,,3] <- pracma::randortho(nreg)
 scale <- init_mcmc$alpha
-rho <- .1
+rho <- .001
 C_rho <- scale * rho * rep(1, ldim) %*% t(rep(1, ldim)) + scale * (1 - rho) * diag(ldim)
 phi_mat <- matrix(0, nrow = nreg^2, ldim)
 log_phi <- 0
@@ -72,17 +72,17 @@ B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
 matplot(tt, B, xlab = "time", ylab = "spline", type = "l")
 init_mcmc <- initialize_mcmc(Y, tt, nt, B, X, ldim = 4)
-microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, l, 1000, 100, 1, init_mcmc), times = 1)
+microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, l, 200, 100, 1, init_mcmc), times = 1)
 
 scale <- init_mcmc$alpha
-rho <- .5
+rho <- .8
 C_rho <- scale * rho * rep(1, ldim) %*% t(rep(1, ldim)) + scale * (1 - rho) * diag(ldim)
 phi_mat <- matrix(0, nrow = nreg^2, ldim)
 log_phi <- 0
 for (r in 1:nreg) {
   for (rp in 1:nreg) {
     # x <- phi[r, rp, ]
-    x <- result$samples$phi[[1000]][rp,r,]
+    x <- result$samples$phi[[200]][rp,r,]
     phi_mat[(r - 1) * nreg + rp, ] <- x
     log_phi <- log_phi + mvtnorm::dmvnorm(x, rep(0, ldim), sigma = C_rho, log = TRUE)
   }
@@ -90,21 +90,26 @@ for (r in 1:nreg) {
 sum(mvtnorm::dmvnorm(phi_mat, rep(0, ldim), sigma = C_rho, log = TRUE))
 pairs(phi_mat)
 
-plot(B %*% result$samples$lambda[,1,1], type = "l")
-for (i in 500:1000) {
-  lines(B %*% result$samples$lambda[,1,i])
+efunc <- 4
+plot(B %*% result$samples$lambda[,efunc,5], type = "l")
+for (i in 6:200) {
+  lines(B %*% result$samples$lambda[,efunc,i])
 }
-lines(-eigenfuncs[,1], col = "red")
-r <- 1
-i <- 1
+lines(eigenfuncs[,efunc], col = "red")
+
+r <- 9
+i <- 7
 plot(Y[((i - 1) * nt + 1):(i * nt),r])
 seqr <- ((i - 1) * nreg + 1):(i * nreg)
-for (i in 501:1000) {
+for (i in 1:200) {
   tmpsum <- numeric(nt)
   for (l in 1:ldim) {
     tmpsum <- tmpsum + B %*% result$samples$lambda[,l, i] %*% t(result$samples$phi[[i]][r,,l]) %*% result$samples$eta[seqr, l, i]
   }
   lines(tmpsum, col = "blue")
 }
+hist(result$samples$rho)
 
-lines(result$samples$fit[1:nt,4], col = "blue")
+
+sum(dgamma(result$samples$xi_eta[,,1000], 1, rate = 1, log = TRUE))
+mean(result$samples$xi_eta[,,1000])
