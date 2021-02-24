@@ -72,7 +72,7 @@ B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
 matplot(tt, B, xlab = "time", ylab = "spline", type = "l")
 init_mcmc <- initialize_mcmc(Y, tt, nt, B, X, ldim = 4)
-microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, l, 3000, 100, 1, init_mcmc), times = 1)
+microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, l, 1, 100, 1, init_mcmc), times = 1)
 
 scale <- init_mcmc$alpha
 rho <- .8
@@ -110,6 +110,25 @@ for (i in 1:200) {
 }
 hist(result$samples$rho)
 
+seqr <- seq(from = 1, to = nsub * nreg, by = nreg)
+sum(dgamma(result$samples$xi_eta[,,500], 1, rate = 1, log = TRUE))
+1 / var(result$samples$eta[seqr,1,1])
 
-sum(dgamma(result$samples$xi_eta[,,1000], 1, rate = 1, log = TRUE))
-mean(result$samples$xi_eta[,,1000])
+tmpsum <- t(result$samples$eta[seqr,1,1]) %*% result$samples$eta[seqr,1,1]
+for (r in 2:nreg) {
+  seqr <- seq(from = r, to = nsub * nreg, by = nreg)
+  tmpsum <- tmpsum + t(result$samples$eta[seqr,1,1]) %*% result$samples$eta[seqr,1,1] * cumprod(init_mcmc$delta_eta[,1])[r - 1]
+}
+for (l in 2:ldim) {
+  for (r in 1:nreg) {
+    if (r > 1) {
+      tmpsum <- tmpsum + t(result$samples$eta[seqr,l,1]) %*% result$samples$eta[seqr,l,1] * cumprod(init_mcmc$delta_eta[,l])[r - 1] * cumprod(init_mcmc$delta_eta[1,])[l - 1]
+    } else {
+      tmpsum <- tmpsum + t(result$samples$eta[seqr,l,1]) %*% result$samples$eta[seqr,l,1] * cumprod(init_mcmc$delta_eta[1,])[l - 1]
+      
+    }
+  }
+}
+dshape = 1 + .5 * tmpsum
+drate = 1 + .5 * nsub * nreg * ldim
+rgamma(1, shape = dshape, rate = drate)

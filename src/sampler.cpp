@@ -23,17 +23,19 @@ void Sampler::sample() {
       }
       transf.complete_response(dat, pars);
       pars.update_lambda(dat, transf);
-      pars.update_beta(dat, transf);
+      pars.beta.zeros();
+      // pars.update_beta(dat, transf);
       pars.update_delta_beta(dat, transf);
+      pars.update_delta_eta(dat, transf);
+      
       pars.update_eta(dat, transf);
       pars.update_omega(dat, transf);
-      pars.update_xi_eta(dat, transf);
+      // pars.update_xi_eta(dat, transf);
       pars.update_zeta(dat, transf);
       pars.update_phi(dat, transf);
       pars.update_rho(dat, transf);
       // Rcpp::Rcout << "eta col size: " << arma::size(pars.eta.col(0)) << "\n";
       
-      pars.update_delta_eta(dat, transf);
       pars.update_nu(dat, transf);
       pars.update_a12(dat, transf);
       // pars.update_phi0(dat, transf);

@@ -82,8 +82,21 @@ initialize_mcmc <- function(Y, tt, nt, B, X, ldim = NULL, cumfve = NULL) {
   rho <- mean(cor(phi_mat)[upper.tri(cor(phi_mat))])
   alpha <- mean(diag(cov(phi_mat)))
   C_rho_alpha <- mean(diag(cov(phi_mat)))
+  delta_eta <- matrix(1, nreg, ldim)
+  delta_eta[1, 1] <- preceta[1,1]
+  for (l in 2:ldim) {
+    delta_eta[1, l] <- preceta[1, l] / cumprod(delta_eta[1,])[l - 1]
+  }
+  for (r in 2:nreg) {
+    delta_eta[r, 1] <- preceta[r, 1] / cumprod(delta_eta[,1])[r - 1]
+  }
+  for (r in 2:nreg) {
+    for (l in 2:ldim) {
+      delta_eta[r, l] <- preceta[r, l] / (cumprod(delta_eta[,l])[r - 1] * cumprod(delta_eta[1,])[l - 1])
+    }
+  }
   list(eta = eta, phi = phi2, phi_cube = phi1, lambda = lambda,
        omega = omega, rho = rho, alpha = alpha,
        phi_mat = phi_mat, beta = beta,
-       preceta = preceta, C_rho_alpha = C_rho_alpha)
+       preceta = preceta, C_rho_alpha = C_rho_alpha, delta_eta = delta_eta)
 }

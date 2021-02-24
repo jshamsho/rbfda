@@ -29,10 +29,11 @@ Parameters::Parameters(Data& dat, Rcpp::Nullable<Rcpp::List> init_ = R_NilValue)
     Rcpp::NumericMatrix eta_tmp = init["eta"];
     Rcpp::NumericMatrix phi_tmp = init["phi"];
     Rcpp::NumericMatrix sigmasqeta_tmp = init["preceta"];
+    Rcpp::NumericMatrix delta_eta_tmp = init["delta_eta"];
     omega = arma::vec(omega_tmp);
     lambda = Rcpp::as<arma::mat>(lambda_tmp);
     eta = Rcpp::as<arma::mat>(eta_tmp);
-
+    delta_eta = Rcpp::as<arma::mat>(delta_eta_tmp);
     sigmasqeta = Rcpp::as<arma::mat>(sigmasqeta_tmp);
     sigmasqetai = arma::mat(dat.nsub * dat.nreg, dat.ldim, arma::fill::ones);
     for (arma::uword i = 0; i < dat.nsub; i++) {
@@ -54,6 +55,8 @@ Parameters::Parameters(Data& dat, Rcpp::Nullable<Rcpp::List> init_ = R_NilValue)
     eta = arma::mat(dat.nsub * dat.nreg, dat.ldim, arma::fill::randn);
     phi = arma::cube(dat.nreg, dat.nreg, dat.ldim, arma::fill::randn);
     sigmasqetai = arma::mat(dat.nsub * dat.nreg, dat.ldim, arma::fill::ones);
+    delta_eta = arma::mat(dat.nreg, dat.ldim, arma::fill::ones);
+    
     rho = 0.5;
   }
   posterior_omega_shape = dat.nt * dat.nsub / 2. + prior_shape;
@@ -63,7 +66,6 @@ Parameters::Parameters(Data& dat, Rcpp::Nullable<Rcpp::List> init_ = R_NilValue)
   xi_eta = arma::mat(dat.nsub * dat.nreg, dat.ldim, arma::fill::ones);
   beta = arma::mat(dat.designdim * dat.nreg, dat.ldim, arma::fill::randn);
   delta_beta = arma::mat(dat.nreg * dat.designdim, dat.ldim, arma::fill::ones);
-  delta_eta = arma::mat(dat.nreg, dat.ldim, arma::fill::ones);
   phi0 = arma::mat(dat.nreg, dat.nreg);
   for (arma::uword r = 0; r < dat.nreg; r++) {
     phi0.col(r) = arma::vec(arma::mean(phi.col(r), 2));
@@ -170,6 +172,7 @@ void Parameters::update_xi_eta(Data& dat, Transformations& transf) {
       }
     }
   }
+  Rcpp::Rcout << "new iter: " << delta_eta_cumprod << "\n";
 }
 
 void Parameters::update_delta_eta(Data& dat, Transformations& transf) {
@@ -178,6 +181,7 @@ void Parameters::update_delta_eta(Data& dat, Transformations& transf) {
   arma::vec etavec, etavecr, betavec, betavecr, etamean;
   delta_eta_cumprod = arma::mat(dat.nreg, dat.ldim);
   arma::rowvec delta_eta_cumprod_init = arma::cumprod(delta_eta.row(0));
+  // Rcpp::Rcout << "sigmasqetai \n" << sigmasqetai.rows(0, 4) << "\n";
   for (arma::uword l = 0; l < dat.ldim; l++) {
     delta_eta_cumprod.col(l) = arma::cumprod(delta_eta.col(l));
     if (l > 0) {
@@ -185,10 +189,12 @@ void Parameters::update_delta_eta(Data& dat, Transformations& transf) {
         delta_eta_cumprod_init(l - 1);
     }
   }
-  for (arma::uword r = 0; r < dat.nreg; r++) {
-    for (arma::uword l = 0; l < dat.ldim; l++) {
+  // Rcpp::Rcout << "delta_eta\n " << delta_eta << "\n"; 
+  // Rcpp::Rcout << "new iter: \n" << delta_eta_cumprod << "\n";
+  for (arma::uword l = 0; l < dat.ldim; l++) {
+    for (arma::uword r = 0; r < dat.nreg; r++) {
       tmpsum = 0;
-      delta(r, l) = 1;
+      delta_eta(r, l) = 1;
       delta_eta_cumprod_init = arma::cumprod(delta_eta.row(0));
       delta_eta_cumprod.col(0) = arma::cumprod(delta_eta.col(0));
       for (arma::uword lp = 1; lp < dat.ldim; lp++) {
@@ -205,15 +211,34 @@ void Parameters::update_delta_eta(Data& dat, Transformations& transf) {
             betavec = beta.col(lp);
             betavecr = betavec.rows(rp * dat.designdim, (rp + 1) * dat.designdim - 1);
             etamean = dat.design * betavecr;
-            tmpsum = tmpsum + 
-              arma::as_scalar((etavecr - etamean).t() * 
+            
+            tmpsum = tmpsum +
+              arma::as_scalar((etavecr - etamean).t() *
               arma::diagmat(delta_eta_cumprod(rp, lp) * xi_eta.submat(r_ind, lpv)) *
               (etavecr - etamean));
+            // if (r == 0) {
+            //   if (l == 0) {
+            //     Rcpp::Rcout << etavecr.rows(0, 5) << "\n";
+            //     Rcpp::Rcout << "rp = " << rp << "  lp = " << lp << "  delta_eta_cumprod = " << delta_eta_cumprod(rp, lp) << "\n";
+            //     Rcpp::Rcout << arma::as_scalar((etavecr).t() * 
+            //       arma::diagmat(delta_eta_cumprod(rp, lp) * xi_eta.submat(r_ind, lpv)) *
+            //       (etavecr)) << "\n";
+            //   }
+            // }
+            
+            // tmpsum = tmpsum + 
+            //   arma::as_scalar((etavecr).t() * 
+            //   arma::diagmat(arma::vectorise(delta_eta_cumprod(rp, lp) * xi_eta.submat(r_ind, lpv))) *
+            //   (etavecr));
           }
         }
         ndf = a1 + .5 * dat.nsub * dat.nreg * (dat.ldim - l);
         delta_eta(r, l) = R::rgamma(ndf, 1. / (1 + .5 * tmpsum));
-        
+        if (r == 0) {
+          if (l == 0) {
+            // Rcpp::Rcout << "shape: " << .5 * dat.nsub * dat.nreg * (dat.ldim - l) << "  rate: " << .5 * tmpsum;
+          }
+        }
       } else {
         arma::uvec lv = arma::ones<arma::uvec>(1) * l;
         for (arma::uword rp = r; rp < dat.nreg; rp++) {
@@ -227,7 +252,8 @@ void Parameters::update_delta_eta(Data& dat, Transformations& transf) {
           etamean = dat.design * betavecr;
           tmpsum = tmpsum + 
             arma::as_scalar((etavecr - etamean).t() * 
-            arma::diagmat(delta_eta_cumprod(rp, l) * xi_eta.submat(r_ind, lv)) * 
+            arma::diagmat(arma::vectorise(delta_eta_cumprod(rp, l) * 
+            xi_eta.submat(r_ind, lv))) * 
             (etavecr - etamean));
         }
         ndf = a2 + .5 * dat.nsub * (dat.nreg - r);
@@ -240,7 +266,7 @@ void Parameters::update_delta_eta(Data& dat, Transformations& transf) {
   delta_eta_cumprod.col(0) = arma::cumprod(delta_eta.col(0));
   for (arma::uword l = 1; l < dat.ldim; l++) {
     delta_eta_cumprod.col(l) = arma::cumprod(delta_eta.col(l)) * 
-      delta_eta_cumprod(l - 1);
+      delta_eta_cumprod_init(l - 1);
   }
   for (arma::uword l = 0; l < dat.ldim; l++) {
     for (arma::uword i = 0; i < dat.nsub; i++) {
@@ -473,14 +499,12 @@ void Parameters::update_rho(const Data &dat, Transformations &transf) {
   rho_proposal = R::runif(std::max(0., rho - offset), std::min(rho + offset, 1.));
   arma::mat C_rho_proposal = alpha * rho_proposal * transf.ones_mat + 
                              alpha * (1 - rho_proposal) * arma::eye(dat.ldim, dat.ldim);
-  // Rcpp::Rcout << C_rho_proposal << "\n";
   arma::mat x = arma::mat(dat.nreg * dat.nreg, dat.ldim);
   for (arma::uword r = 0; r < dat.nreg; r++) {
     for (arma::uword rr = 0; rr < dat.nreg; rr++) {
       x.row(rr + r * dat.nreg) = arma::vec(phi.tube(rr, r)).t();
     }
   }
-  // Rcpp::Rcout << "x \n" << x.rows(0, 5) << "\n";
   loglik_old = arma::accu(dmvnrm_arma_fast(
     x, arma::zeros<arma::rowvec>(dat.ldim), transf.C_rho, true));
   
@@ -500,7 +524,6 @@ void Parameters::update_rho(const Data &dat, Transformations &transf) {
     rho = rho_proposal;
     transf.C_rho = C_rho_proposal;
   }
-  // Rcpp::Rcout << "proposed: " << rho_newmh << "   old: " << rho_oldmh << "\n";
 }
 
 void Parameters::update_nu(const Data& dat, Transformations transf) {
@@ -538,27 +561,15 @@ void Parameters::update_a12(const Data& dat, Transformations& transf) {
     loglik_new = loglik_new + R::dgamma(delta_eta.row(0)(l), a_proposal, 1, true);
     loglik_old = loglik_old + R::dgamma(delta_eta.row(0)(l), a1, 1, true);
   }
-  Rcpp::Rcout << "a1 = " << a1 << "\n";
-  Rcpp::Rcout << "proposal = " << a_proposal << "\n";
-  Rcpp::Rcout << "loglik_new: " << loglik_new << "\n";
-  Rcpp::Rcout << "loglik_old: " << loglik_old << "\n";
   prior_new = R::dgamma(a_proposal, 2, 1, true);
   prior_old = R::dgamma(a1, 2, 1, true);
   new_logpost = loglik_new + prior_new;
   old_logpost = loglik_old + prior_old;
-  Rcpp::Rcout << "new_logpost: " << new_logpost << "\n";
-  Rcpp::Rcout << "old_logpost: " << old_logpost << "\n";
   a_newmh = new_logpost - R::dunif(a_proposal, std::max(0., a1 - offset),
                                      a1 + offset, 1);
   a_oldmh = old_logpost - R::dunif(a1, std::max(0., a_proposal - offset), 
                                    a_proposal + offset, 1);
-  Rcpp::Rcout << "adjustment: " << R::dunif(a1, std::max(0., a_proposal - offset), 
-                                a_proposal + offset, 1) << "\n";
-  // a1 isn't in the correct bounds. Can't even reach a1 from a_proposal
   logratio = a_newmh - a_oldmh;
-  Rcpp::Rcout << "a_newmh: " << a_newmh << "\n";
-  Rcpp::Rcout << "a_oldmh: " << a_oldmh << "\n";
-  
   if (R::runif(0, 1) < exp(logratio)) {
     a1 = a_proposal;
   }
