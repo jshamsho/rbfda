@@ -1,10 +1,10 @@
 library(mgcv)
 source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/initialize_mcmc.R")
-nt <- 100
+nt <- 60
 tt <- seq(from = 0, to = 1, length.out = nt)
-nreg <- 9
-nsub <- 200
-ndf <- 25
+nreg <- 5
+nsub <- 50
+ndf <- 15
 d <- 2
 ldim <- 4
 sqexp <- function(t, tp) {
@@ -72,7 +72,7 @@ B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
 matplot(tt, B, xlab = "time", ylab = "spline", type = "l")
 init_mcmc <- initialize_mcmc(Y, tt, nt, B, X, ldim = 4)
-microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, l, 200, 100, 1, init_mcmc), times = 1)
+microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, l, 3000, 100, 1, init_mcmc), times = 1)
 
 scale <- init_mcmc$alpha
 rho <- .8
@@ -97,7 +97,7 @@ for (i in 6:200) {
 }
 lines(eigenfuncs[,efunc], col = "red")
 
-r <- 9
+r <- 2
 i <- 7
 plot(Y[((i - 1) * nt + 1):(i * nt),r])
 seqr <- ((i - 1) * nreg + 1):(i * nreg)

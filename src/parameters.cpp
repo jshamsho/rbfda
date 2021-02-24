@@ -508,6 +508,8 @@ void Parameters::update_nu(const Data& dat, Transformations transf) {
   double logratio,
   loglik_old, loglik_new, nu_oldmh, nu_newmh, nu_proposal;
   Rcpp::NumericVector xi_eta_vec = Rcpp::as<Rcpp::NumericVector>(Rcpp::wrap(arma::vectorise(xi_eta)));
+  loglik_old = 0;
+  loglik_new = 0;
   nu_proposal = R::runif(std::max(2., nu - offset), std::min(nu + offset, 128.));
   for (arma::uword l = 0; l < dat.ldim; l++) {
     for (arma::uword i = 0; i < dat.nsub * dat.nreg; i++) {
@@ -530,19 +532,33 @@ void Parameters::update_a12(const Data& dat, Transformations& transf) {
   double prior_old, prior_new, logratio, new_logpost,
     loglik_old, loglik_new, a_oldmh, a_newmh, a_proposal;
   a_proposal = R::runif(std::max(0., a1 - offset), a1 + offset);
+  loglik_new = 0;
+  loglik_old = 0;
   for (arma::uword l = 0; l < dat.ldim; l++) {
     loglik_new = loglik_new + R::dgamma(delta_eta.row(0)(l), a_proposal, 1, true);
     loglik_old = loglik_old + R::dgamma(delta_eta.row(0)(l), a1, 1, true);
   }
+  Rcpp::Rcout << "a1 = " << a1 << "\n";
+  Rcpp::Rcout << "proposal = " << a_proposal << "\n";
+  Rcpp::Rcout << "loglik_new: " << loglik_new << "\n";
+  Rcpp::Rcout << "loglik_old: " << loglik_old << "\n";
   prior_new = R::dgamma(a_proposal, 2, 1, true);
   prior_old = R::dgamma(a1, 2, 1, true);
-  new_logpost = loglik_new - prior_new;
-  old_logpost = loglik_old - prior_old;
+  new_logpost = loglik_new + prior_new;
+  old_logpost = loglik_old + prior_old;
+  Rcpp::Rcout << "new_logpost: " << new_logpost << "\n";
+  Rcpp::Rcout << "old_logpost: " << old_logpost << "\n";
   a_newmh = new_logpost - R::dunif(a_proposal, std::max(0., a1 - offset),
-                                     a1 + offset, true);
-  a_oldmh = old_logpost - R::dunif(a1, std::max(0., a_proposal), 
-                                   a_proposal + offset, true);
+                                     a1 + offset, 1);
+  a_oldmh = old_logpost - R::dunif(a1, std::max(0., a_proposal - offset), 
+                                   a_proposal + offset, 1);
+  Rcpp::Rcout << "adjustment: " << R::dunif(a1, std::max(0., a_proposal - offset), 
+                                a_proposal + offset, 1) << "\n";
+  // a1 isn't in the correct bounds. Can't even reach a1 from a_proposal
   logratio = a_newmh - a_oldmh;
+  Rcpp::Rcout << "a_newmh: " << a_newmh << "\n";
+  Rcpp::Rcout << "a_oldmh: " << a_oldmh << "\n";
+  
   if (R::runif(0, 1) < exp(logratio)) {
     a1 = a_proposal;
   }
@@ -558,11 +574,11 @@ void Parameters::update_a12(const Data& dat, Transformations& transf) {
   }
   prior_new = R::dgamma(a_proposal, 2, 1, true);
   prior_old = R::dgamma(a2, 2, 1, true);
-  new_logpost = loglik_new - prior_new;
-  old_logpost = loglik_old - prior_old;
+  new_logpost = loglik_new + prior_new;
+  old_logpost = loglik_old + prior_old;
   a_newmh = new_logpost - R::dunif(a_proposal, std::max(0., a2 - offset),
                                    a2 + offset, true);
-  a_oldmh = old_logpost - R::dunif(a2, std::max(0., a_proposal), 
+  a_oldmh = old_logpost - R::dunif(a2, std::max(0., a_proposal - offset), 
                                    a_proposal + offset, true);
   logratio = a_newmh - a_oldmh;
   if (R::runif(0, 1) < exp(logratio)) {
