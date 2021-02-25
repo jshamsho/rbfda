@@ -22,22 +22,23 @@ void Sampler::sample() {
         goto stop;
       }
       transf.complete_response(dat, pars);
-      pars.update_lambda(dat, transf);
-      pars.beta.zeros();
       // pars.update_beta(dat, transf);
+      pars.beta.zeros();
       pars.update_delta_beta(dat, transf);
-      pars.update_delta_eta(dat, transf);
-      
       pars.update_eta(dat, transf);
+      
+      pars.update_delta_eta(dat, transf);
       pars.update_omega(dat, transf);
-      // pars.update_xi_eta(dat, transf);
+      pars.update_xi_eta(dat, transf);
       pars.update_zeta(dat, transf);
       pars.update_phi(dat, transf);
-      pars.update_rho(dat, transf);
-      // Rcpp::Rcout << "eta col size: " << arma::size(pars.eta.col(0)) << "\n";
+      pars.update_lambda(dat, transf);
       
+      pars.update_rho(dat, transf);
       pars.update_nu(dat, transf);
-      pars.update_a12(dat, transf);
+      pars.update_a123(dat, transf);
+      // pars.update_a12(dat, transf);
+      
       // pars.update_phi0(dat, transf);
       // pars.update_tau_phi0(dat, transf);
       // Rcpp::Rcout << transf.C_rho << "\n";
@@ -65,9 +66,10 @@ void Sampler::write_samples() {
   pars.tau_phi0_container.slice(current_iter) = pars.tau_phi0;
   pars.sigmasqetai_container.slice(current_iter) = pars.sigmasqetai;
   pars.delta_eta_container.slice(current_iter) = pars.delta_eta;
-  pars.nu_container(current_iter) = pars.nu;
+  pars.nu_container.col(current_iter) = pars.nu;
   pars.a1_container(current_iter) = pars.a1;
   pars.a2_container(current_iter) = pars.a2;
+  pars.a3_container(current_iter) = pars.a3;
   
   current_iter++;
 }
@@ -88,8 +90,6 @@ Rcpp::List Sampler::get_samples() {
                             Rcpp::Named("nu", pars.nu_container),
                             Rcpp::Named("a1", pars.a1_container),
                             Rcpp::Named("a2", pars.a2_container),
-                            Rcpp::Named("phi0", pars.phi0_container),
-                            Rcpp::Named("tau_phi0", pars.tau_phi0_container),
-                            Rcpp::Named("fit", transf.fit),
-                            Rcpp::Named("phi_constr", transf.phi_lin_constr));
+                            Rcpp::Named("a3", pars.a3_container),
+                            Rcpp::Named("fit", transf.fit));
 }

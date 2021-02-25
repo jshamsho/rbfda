@@ -3,7 +3,7 @@ source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/initialize_m
 nt <- 60
 tt <- seq(from = 0, to = 1, length.out = nt)
 nreg <- 5
-nsub <- 50
+nsub <- 100
 ndf <- 15
 d <- 2
 ldim <- 4
@@ -71,18 +71,18 @@ basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2), data.frame(tt), ab
 B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
 matplot(tt, B, xlab = "time", ylab = "spline", type = "l")
-init_mcmc <- initialize_mcmc(Y, tt, nt, B, X, ldim = 4)
-microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, l, 1, 100, 1, init_mcmc), times = 1)
+init_mcmc <- initialize_mcmc(Y, tt, nt, B, X, ldim = ldim)
+microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, ldim, 1000, 100, 1, init_mcmc), times = 1)
 
 scale <- init_mcmc$alpha
-rho <- .8
+rho <- .1
 C_rho <- scale * rho * rep(1, ldim) %*% t(rep(1, ldim)) + scale * (1 - rho) * diag(ldim)
 phi_mat <- matrix(0, nrow = nreg^2, ldim)
 log_phi <- 0
 for (r in 1:nreg) {
   for (rp in 1:nreg) {
     # x <- phi[r, rp, ]
-    x <- result$samples$phi[[200]][rp,r,]
+    x <- result$samples$phi[[1000]][rp,r,]
     phi_mat[(r - 1) * nreg + rp, ] <- x
     log_phi <- log_phi + mvtnorm::dmvnorm(x, rep(0, ldim), sigma = C_rho, log = TRUE)
   }
@@ -90,18 +90,18 @@ for (r in 1:nreg) {
 sum(mvtnorm::dmvnorm(phi_mat, rep(0, ldim), sigma = C_rho, log = TRUE))
 pairs(phi_mat)
 
-efunc <- 4
+efunc <- 1
 plot(B %*% result$samples$lambda[,efunc,5], type = "l")
-for (i in 6:200) {
+for (i in 6:1000) {
   lines(B %*% result$samples$lambda[,efunc,i])
 }
 lines(eigenfuncs[,efunc], col = "red")
 
-r <- 2
-i <- 7
+r <- 1
+i <- 2
 plot(Y[((i - 1) * nt + 1):(i * nt),r])
 seqr <- ((i - 1) * nreg + 1):(i * nreg)
-for (i in 1:200) {
+for (i in 1:1000) {
   tmpsum <- numeric(nt)
   for (l in 1:ldim) {
     tmpsum <- tmpsum + B %*% result$samples$lambda[,l, i] %*% t(result$samples$phi[[i]][r,,l]) %*% result$samples$eta[seqr, l, i]
@@ -110,25 +110,101 @@ for (i in 1:200) {
 }
 hist(result$samples$rho)
 
-seqr <- seq(from = 1, to = nsub * nreg, by = nreg)
-sum(dgamma(result$samples$xi_eta[,,500], 1, rate = 1, log = TRUE))
-1 / var(result$samples$eta[seqr,1,1])
-
-tmpsum <- t(result$samples$eta[seqr,1,1]) %*% result$samples$eta[seqr,1,1]
-for (r in 2:nreg) {
-  seqr <- seq(from = r, to = nsub * nreg, by = nreg)
-  tmpsum <- tmpsum + t(result$samples$eta[seqr,1,1]) %*% result$samples$eta[seqr,1,1] * cumprod(init_mcmc$delta_eta[,1])[r - 1]
-}
-for (l in 2:ldim) {
-  for (r in 1:nreg) {
-    if (r > 1) {
-      tmpsum <- tmpsum + t(result$samples$eta[seqr,l,1]) %*% result$samples$eta[seqr,l,1] * cumprod(init_mcmc$delta_eta[,l])[r - 1] * cumprod(init_mcmc$delta_eta[1,])[l - 1]
-    } else {
-      tmpsum <- tmpsum + t(result$samples$eta[seqr,l,1]) %*% result$samples$eta[seqr,l,1] * cumprod(init_mcmc$delta_eta[1,])[l - 1]
-      
-    }
+iter <- 1000
+l <- 1
+r <- 1
+seqr <- seq(from = r, to = nsub * nreg, by = nreg)
+xb <- X %*% result$samples$beta[((r - 1) * d + 1):(r * d), l, iter]
+# sum(dgamma(result$samples$xi_eta[,,500], 1, rate = 1, log = TRUE))
+var(result$samples$eta[seqr,l,iter] - xb)
+result$samples$nu[iter]
+delta_eta_cumprod <- array(0, dim = c(nreg, ldim, 1000))
+for (i in 1:1000) {
+  initd <- cumprod(result$samples$delta_eta[1,,i])
+  delta_eta_cumprod[,1,i] <- cumprod(result$samples$delta_eta[,1,i])
+  for (l in 2:ldim) {
+    delta_eta_cumprod[,l,i] <- cumprod(result$samples$delta_eta[,l,i]) * initd[l - 1]
+    
   }
 }
-dshape = 1 + .5 * tmpsum
-drate = 1 + .5 * nsub * nreg * ldim
-rgamma(1, shape = dshape, rate = drate)
+plot(1 / delta_eta_cumprod[5,8,])
+abline(h = 1 / init_mcmc$preceta[5,8])
+quantile(1 / delta_eta_cumprod[1,1,], c(.025, .975))
+
+1 / delta_eta_cumprod[,,1000]
+
+hist(1 / delta_eta_cumprod[5,2,])
+abline(h = 1 / init_mcmc$preceta[5,2])
+
+
+abline(v = 1 / var(result$samples$eta[seqr,1,1000]))
+
+
+iter <- 2
+l <- 1
+r <- 1
+delta_eta_cumprod <- matrix(0, nreg, ldim)
+this_delta <- result$samples$delta_eta[,,iter]
+this_delta[r, l] <- 1
+initd <- cumprod(this_delta[1,])
+delta_eta_cumprod[,1] <- cumprod(this_delta[,1])
+for (l in 2:ldim) {
+  delta_eta_cumprod[,l] <- cumprod(this_delta[,l]) * initd[l - 1]
+}
+# for (rp in 1:r) {
+#   for (lp in 1:l) {
+#     delta_eta_cumprod[rp, lp] <- 0
+#   }
+# }
+tmpsum <- 0
+for (r in 1:nreg) {
+  for (l in 1:ldim) {
+    seqr <- seq(from = r, to = nsub * nreg, by = nreg)
+    add_this <- t(result$samples$eta[seqr,l,iter - 1]) %*% 
+      (result$samples$eta[seqr,l,iter - 1])
+    multiply_by <- delta_eta_cumprod[r, l]
+    tmpsum <- tmpsum + add_this * multiply_by
+    print(result$samples$eta[seqr,l,iter][1:4])
+    print(paste0("r = ", r, "  l = ", l, "  add_this = ", add_this, "  multiply_by = ", multiply_by))
+  }
+}
+# microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, ldim, 1, 100, 1, init_mcmc), times = 1)
+tmpsum
+drate = 1 + .5 * tmpsum
+dshape = 1 + .5 * nsub * nreg * ldim
+rgamma(20, shape = dshape, rate = drate)
+
+microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, ldim, 1000, 100, 1, init_mcmc), times = 1)
+
+### Checking posterior measure
+iter <- 1
+delta_eta_cumprod <- matrix(0, nreg, ldim)
+initd <- cumprod(result$samples$delta_eta[1,,iter])
+delta_eta_cumprod[,1] <- cumprod(result$samples$delta_eta[,1,iter])
+for (l in 2:ldim) {
+  delta_eta_cumprod[,l] <- cumprod(result$samples$delta_eta[,l,iter]) * initd[l - 1]
+}
+
+tmpsum <- 0
+for (r in 1:1) {
+  for (l in 1:1) {
+    seqr <- seq(from = r, to = nsub * nreg, by = nreg)
+    tmpsum <- tmpsum + sum(dnorm(result$samples$eta[seqr,l,iter],
+          mean = 0, sd = 1 / sqrt(delta_eta_cumprod[r, l]), log = TRUE))
+    tmpsum <- tmpsum + dgamma(result$samples$delta_eta[r, l, iter], shape = 2, rate = 1, log = TRUE)
+  }
+}
+tmpsum
+1 / delta_eta_cumprod
+plot(1 / result$samples$delta_eta[1,1,])
+abline(h = 1 / init_mcmc$delta_eta[1,1], col = "red")
+quantile(1 / result$samples$delta_eta[1,1,], c(.025, .975))
+
+
+
+
+plot(1 / result$samples$delta_eta[1,1,])
+max_iter <- which.min(result$samples$delta_eta[1,1,])
+iter <- max_iter
+sum(dnorm(result$samples$eta[seqr,l,iter],
+          mean = 0, sd = 1 / sqrt(result$samples$delta_eta[1,1,iter]), log = TRUE))

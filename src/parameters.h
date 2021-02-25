@@ -29,14 +29,13 @@ class Parameters {
     double rho_shape1 = 1, rho_shape2 = 1;
     double old_logpost = -arma::datum::inf;
     double rho, alpha = 1;
-    double a1, a2;
-    double nu = 10;
-    arma::vec omega, nup, zeta, rho_container, alpha_container, nu_container,
-      a1_container, a2_container;
+    double a1, a2, a3;
+    arma::vec omega, nu, nup, zeta, rho_container, alpha_container,
+      a1_container, a2_container, a3_container;
     arma::mat lambda, sigmasqeta, sigmasqetai, delta, eta, xi_eta, delta_eta,
       beta, delta_beta, phi0, tau_phi0;
     arma::cube phi, init_phi;
-    arma::mat omega_container, zeta_container;
+    arma::mat omega_container, zeta_container, nu_container;
     arma::cube lambda_container, eta_container, sigmasqetai_container, 
       sigmasqeta_container, xi_eta_container, beta_container, delta_beta_container,
       delta_eta_container, phi0_container, tau_phi0_container;
@@ -53,6 +52,7 @@ class Parameters {
     void update_eta(Data&, Transformations&);
     void update_xi_eta(Data&, Transformations&);
     void update_delta_eta(Data&, Transformations&);
+    void update_delta_eta_mh(const Data&, Transformations&);
     void update_beta(const Data&, Transformations&);
     void update_delta_beta(const Data&, Transformations&);
     void update_lambda(const Data&, Transformations&);
@@ -63,5 +63,6 @@ class Parameters {
     void update_nu(const Data&, Transformations);
     void update_tau_phi0(const Data&, Transformations&);
     void update_a12(const Data&, Transformations&);
+    void update_a123(const Data&, Transformations&);
 };
 #endif

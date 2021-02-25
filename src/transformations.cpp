@@ -10,6 +10,7 @@ Transformations::Transformations(Data& dat, Parameters& pars) {
   ones_mat = arma::ones<arma::mat>(dat.ldim, dat.ldim);
   psi_lin_constr = arma::zeros(dat.ldim, dat.basisdim);
   phi_lin_constr = arma::zeros(dat.ldim * dat.nreg, dat.ldim * dat.nreg);
+  delta_eta_cumprod = arma::mat(dat.nreg, dat.ldim);
   initialize_fit(dat, pars);
 }
 
@@ -18,6 +19,7 @@ void Transformations::initialize_fit(Data& dat, Parameters& pars) {
   arma::uword last = dat.nt - 1;
   arma::uword first_eta = 0;
   arma::uword last_eta = dat.nreg - 1;
+  delta_eta_cumprod_init = arma::cumprod(pars.delta_eta.row(0));
   for (arma::uword i = 0; i < dat.nsub; i++) {
     for (arma::uword l = 0; l < dat.ldim; l++) {
       first = i * dat.nt;
@@ -56,7 +58,11 @@ void Transformations::initialize_fit(Data& dat, Parameters& pars) {
         pars.phi.slice(l).col(r).t();
     }
   }
-  
+  delta_eta_cumprod.col(0) = arma::cumprod(pars.delta_eta.col(0));
+  for (arma::uword l = 1; l < dat.ldim; l++) {
+    delta_eta_cumprod.col(l) = arma::cumprod(pars.delta_eta.col(l)) * 
+      delta_eta_cumprod_init(l - 1);
+  }
   C_rho = pars.alpha * pars.rho * ones_mat + pars.alpha * (1 - pars.rho) * arma::eye(dat.ldim, dat.ldim);
 }
 

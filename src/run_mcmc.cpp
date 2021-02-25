@@ -38,16 +38,10 @@ Rcpp::List run_mcmc(arma::mat response, arma::mat design,
            penalty, ldim,
            iter, burnin, thin);
   Parameters pars(dat, init_);
-  // pars.eta = eta;
-  // pars.phi = phi;
-  // pars.lambda = lambda;
   Transformations transf(dat, pars);
   
-  // transf.psi.zeros();
-  // transf.psi_lin_constr.zeros();
-  // transf.psi = psi;
-  // transf.psi_lin_constr = transf.psi.t() * dat.basis;
   Sampler mysampler(dat, pars, transf);
+  
   mysampler.sample();
   Rcpp::List return_me;
   return_me["data"] = mysampler.write_data();
