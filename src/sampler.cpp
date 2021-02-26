@@ -22,11 +22,10 @@ void Sampler::sample() {
         goto stop;
       }
       transf.complete_response(dat, pars);
-      // pars.update_beta(dat, transf);
-      pars.beta.zeros();
-      pars.update_delta_beta(dat, transf);
-      pars.update_eta(dat, transf);
       
+      pars.update_eta(dat, transf);
+      pars.update_beta(dat, transf);
+      pars.update_delta_beta(dat, transf);
       pars.update_delta_eta(dat, transf);
       pars.update_omega(dat, transf);
       pars.update_xi_eta(dat, transf);
@@ -70,7 +69,7 @@ void Sampler::write_samples() {
   pars.a1_container(current_iter) = pars.a1;
   pars.a2_container(current_iter) = pars.a2;
   pars.a3_container(current_iter) = pars.a3;
-  
+  pars.alpha_container(current_iter) = pars.alpha;
   current_iter++;
 }
 
@@ -91,5 +90,6 @@ Rcpp::List Sampler::get_samples() {
                             Rcpp::Named("a1", pars.a1_container),
                             Rcpp::Named("a2", pars.a2_container),
                             Rcpp::Named("a3", pars.a3_container),
+                            Rcpp::Named("alpha", pars.alpha_container),
                             Rcpp::Named("fit", transf.fit));
 }

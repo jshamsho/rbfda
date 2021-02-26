@@ -72,7 +72,7 @@ B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
 matplot(tt, B, xlab = "time", ylab = "spline", type = "l")
 init_mcmc <- initialize_mcmc(Y, tt, nt, B, X, ldim = ldim)
-microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, ldim, 1000, 100, 1, init_mcmc), times = 1)
+microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, ldim, 10000, 100, 1, init_mcmc), times = 1)
 
 scale <- init_mcmc$alpha
 rho <- .1
@@ -91,14 +91,14 @@ sum(mvtnorm::dmvnorm(phi_mat, rep(0, ldim), sigma = C_rho, log = TRUE))
 pairs(phi_mat)
 
 efunc <- 1
-plot(B %*% result$samples$lambda[,efunc,5], type = "l")
-for (i in 6:1000) {
+plot(B %*% result$samples$lambda[,efunc,5001], type = "l")
+for (i in 5001:10000) {
   lines(B %*% result$samples$lambda[,efunc,i])
 }
 lines(eigenfuncs[,efunc], col = "red")
 
-r <- 1
-i <- 2
+r <- 2
+i <- 4
 plot(Y[((i - 1) * nt + 1):(i * nt),r])
 seqr <- ((i - 1) * nreg + 1):(i * nreg)
 for (i in 1:1000) {
@@ -118,8 +118,8 @@ xb <- X %*% result$samples$beta[((r - 1) * d + 1):(r * d), l, iter]
 # sum(dgamma(result$samples$xi_eta[,,500], 1, rate = 1, log = TRUE))
 var(result$samples$eta[seqr,l,iter] - xb)
 result$samples$nu[iter]
-delta_eta_cumprod <- array(0, dim = c(nreg, ldim, 1000))
-for (i in 1:1000) {
+delta_eta_cumprod <- array(0, dim = c(nreg, ldim, 10000))
+for (i in 1:10000) {
   initd <- cumprod(result$samples$delta_eta[1,,i])
   delta_eta_cumprod[,1,i] <- cumprod(result$samples$delta_eta[,1,i])
   for (l in 2:ldim) {
@@ -127,9 +127,9 @@ for (i in 1:1000) {
     
   }
 }
-plot(1 / delta_eta_cumprod[5,8,])
-abline(h = 1 / init_mcmc$preceta[5,8])
-quantile(1 / delta_eta_cumprod[1,1,], c(.025, .975))
+plot(1 / delta_eta_cumprod[1,1,])
+abline(h = 1 / init_mcmc$preceta[1,1])
+quantile(1 / delta_eta_cumprod[1,1,1:10000], c(.025, .975))
 
 1 / delta_eta_cumprod[,,1000]
 
@@ -208,3 +208,22 @@ max_iter <- which.min(result$samples$delta_eta[1,1,])
 iter <- max_iter
 sum(dnorm(result$samples$eta[seqr,l,iter],
           mean = 0, sd = 1 / sqrt(result$samples$delta_eta[1,1,iter]), log = TRUE))
+
+
+z1 <- rnorm(1000, sd = 1/sqrt(100))
+z2 <- rnorm(1000, mean = .1, sd = 1 / sqrt(100))
+1 / 1000 * sum(z2 > z1)
+mean(pnorm(z2 - z1, sd = sqrt(1 / 100 + 1 / 100)))
+pnorm(.1, mean = 0, sd = sqrt(2 / 100))
+myt <- numeric(10000)
+stde <- numeric(100)
+for (i in 1:10000) {
+  z1 <- rnorm(100, sd = 1)
+  z2 <- rnorm(100, mean = .5, sd = 1)
+  # myt[i] <- t.test(z1, z2, alternative = "greater")$p.value
+  # stde[i] <- t.test(z1, z2, alternative = "greater")$stderr
+  myt[i] <- pnorm(mean(z2) - mean(z1), mean = 0, sd = sqrt(2/100))
+}
+median(myt)
+hist(1 - myt)
+mean(stde)

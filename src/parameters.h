@@ -28,7 +28,7 @@ class Parameters {
     double delta_beta_nu = 4;
     double rho_shape1 = 1, rho_shape2 = 1;
     double old_logpost = -arma::datum::inf;
-    double rho, alpha = 1;
+    double rho, alpha;
     double a1, a2, a3;
     arma::vec omega, nu, nup, zeta, rho_container, alpha_container,
       a1_container, a2_container, a3_container;
@@ -64,5 +64,6 @@ class Parameters {
     void update_tau_phi0(const Data&, Transformations&);
     void update_a12(const Data&, Transformations&);
     void update_a123(const Data&, Transformations&);
+    void update_alpha(const Data&, Transformations&);
 };
 #endif

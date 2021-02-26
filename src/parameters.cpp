@@ -61,6 +61,7 @@ Parameters::Parameters(Data& dat, Rcpp::Nullable<Rcpp::List> init_ = R_NilValue)
     delta_eta = arma::mat(dat.nreg, dat.ldim, arma::fill::ones);
     beta = arma::mat(dat.designdim * dat.nreg, dat.ldim, arma::fill::randn);
     rho = 0.5;
+    alpha = 1;
   }
   posterior_omega_shape = dat.nt * dat.nsub / 2. + prior_shape;
   zeta = arma::vec(dat.ldim, arma::fill::ones);
@@ -130,7 +131,7 @@ void Parameters::update_eta(Data& dat, Transformations& transf) {
     for (arma::uword l = 0; l < dat.ldim; l++) {
       diagsigma = arma::diagmat(sigmasqetai.rows(first_eta, last_eta).col(l));
       // yt = arma::trans((transf.psi.col(l).t() * dat.response.rows(first, last)) * phi.slice(l));
-      beta_mat = arma::reshape(beta.col(l), dat.nreg, dat.designdim);
+      beta_mat = arma::reshape(beta.col(l), dat.designdim, dat.nreg).t();
       // b = phi.slice(l).t() * diagomega * phi.slice(l) * yt +
         // diagsigma * (beta_mat * dat.design.row(i).t());
       b = phi.slice(l).t() * diagomega * (dat.response.rows(first, last).t() * transf.psi.col(l)) +
@@ -229,7 +230,8 @@ void Parameters::update_delta_eta(Data& dat, Transformations& transf) {
           //   arma::as_scalar((etavecr - etamean).t() *
           //   arma::diagmat(xi_eta.submat(r_ind, lpv)) * 
           //   (etavecr - etamean));
-          tmpsum = tmpsum + delta_eta_cumprod(rp, lp) * arma::as_scalar((etavecr - etamean).t() * (etavecr - etamean));
+          tmpsum = tmpsum + delta_eta_cumprod(rp, lp) * arma::as_scalar((etavecr - etamean).t() *
+            arma::diagmat(xi_eta.submat(r_ind, lpv)) * (etavecr - etamean));
           if (r == 0) {
             if (l == 0) {
               //     Rcpp::Rcout << etavecr.rows(0, 5) << "\n";
@@ -629,6 +631,22 @@ void Parameters::update_a123(const Data& dat, Transformations& transf) {
   }
 }
 
+void Parameters::update_alpha(const Data& dat, Transformations& transf) {
+  arma::mat C_rho_inv;
+  double shape, rate;
+  shape = .5 + dat.nreg * dat.nreg * dat.ldim;
+  rate = .5;
+  C_rho_inv = arma::inv_sympd(rho * transf.ones_mat + 
+    (1 - rho) * arma::eye(dat.ldim, dat.ldim));
+  for (arma::uword r = 0; r < dat.nreg; r++) {
+    for (arma::uword rp = 0; rp < dat.nreg; rp++) {
+      rate = rate + arma::as_scalar(.5 * arma::vec(phi.tube(rp, r)).t() * 
+        C_rho_inv * 
+        arma::vec(phi.tube(rp, r)));
+    }
+  }
+  alpha = R::rgamma(shape, 1. / (1 + rate));
+}
 void Parameters::update_a12(const Data& dat, Transformations& transf) {
   double offset = .5;
   double prior_old, prior_new, logratio, new_logpost,
