@@ -19,7 +19,7 @@ Parameters::Parameters(Data& dat, Rcpp::Nullable<Rcpp::List> init_ = R_NilValue)
   a2_container = arma::vec(dat.iter);
   a3_container = arma::vec(dat.iter);
   alpha_container = arma::vec(dat.iter);
-  nu_container = arma::mat(dat.ldim, dat.iter);
+  nu_container = arma::vec(dat.iter);
   phi = arma::cube(dat.nreg, dat.nreg, dat.ldim, arma::fill::zeros);
   if (init_.isNotNull()) {
     Rcpp::List init(init_);
@@ -68,7 +68,7 @@ Parameters::Parameters(Data& dat, Rcpp::Nullable<Rcpp::List> init_ = R_NilValue)
   sigmasqeta = arma::mat(dat.nreg, dat.ldim, arma::fill::ones);
   xi_eta = arma::mat(dat.nsub * dat.nreg, dat.ldim, arma::fill::ones);
   delta_beta = arma::mat(dat.nreg * dat.designdim, dat.ldim, arma::fill::ones);
-  nu = arma::vec(dat.ldim, arma::fill::ones) * 30;
+  nu = 60;
   phi0 = arma::mat(dat.nreg, dat.nreg);
   for (arma::uword r = 0; r < dat.nreg; r++) {
     phi0.col(r) = arma::vec(arma::mean(phi.col(r), 2));
@@ -156,12 +156,12 @@ void Parameters::update_eta(Data& dat, Transformations& transf) {
 void Parameters::update_xi_eta(Data& dat, Transformations& transf) {
   double shape, rate;
   for (arma::uword l = 0; l < dat.ldim; l++) {
-    shape = .5 + nu(l) / 2.;
+    shape = .5 + nu / 2.;
     arma::uword idx;
     for (arma::uword r = 0; r < dat.nreg; r++) {
       for (arma::uword i = 0; i < dat.nsub; i++) {
         idx = i * dat.nreg + r;
-        rate = nu(l) / 2. + 
+        rate = nu / 2. + 
                      .5 * std::pow(eta(idx, l), 2) * transf.delta_eta_cumprod(r, l);
         xi_eta(idx, l) = R::rgamma(shape, 1. / rate);
       }
@@ -543,24 +543,21 @@ void Parameters::update_rho(const Data &dat, Transformations &transf) {
 void Parameters::update_nu(const Data& dat, Transformations transf) {
   double offset = 2;
   double logratio,
-  loglik_old, loglik_new, nu_oldmh, nu_newmh, nu_proposal;
-  Rcpp::NumericVector xi_eta_vec = Rcpp::as<Rcpp::NumericVector>(Rcpp::wrap(arma::vectorise(xi_eta)));
+    loglik_old, loglik_new, nu_oldmh, nu_newmh, nu_proposal;
+  loglik_old = 0, loglik_new = 0;
+  nu_proposal = R::runif(std::max(2., nu - offset), std::min(nu + offset, 128.));
   for (arma::uword l = 0; l < dat.ldim; l++) {
-    loglik_old = 0;
-    loglik_new = 0;
-    nu_proposal = R::runif(std::max(2., nu(l) - offset), std::min(nu(l) + offset, 128.));
     for (arma::uword i = 0; i < dat.nsub * dat.nreg; i++) {
-      loglik_old = loglik_old + R::dgamma(xi_eta(i, l), nu(l) / 2., 2. / nu(l), true);
+      loglik_old = loglik_old + R::dgamma(xi_eta(i, l), nu / 2., 2. / nu, true);
       loglik_new = loglik_new + R::dgamma(xi_eta(i, l), nu_proposal / 2., 2. / nu_proposal, true);
     }
-    
-    nu_oldmh = loglik_old - R::dunif(nu(l), std::max(2., nu_proposal - offset),
+    nu_oldmh = loglik_old - R::dunif(nu, std::max(2., nu_proposal - offset),
                                      std::min(nu_proposal + offset, 128.), true);
-    nu_newmh = loglik_new - R::dunif(nu_proposal, std::max(2., nu(l) - offset),
-                                     std::min(nu(l) + offset, 128.), true); 
+    nu_newmh = loglik_new - R::dunif(nu_proposal, std::max(2., nu - offset),
+                                     std::min(nu + offset, 128.), true); 
     logratio = nu_newmh - nu_oldmh;
     if (R::runif(0, 1) < exp(logratio)) {
-      nu(l) = nu_proposal;
+      nu = nu_proposal;
     }
   }
 }
@@ -634,18 +631,18 @@ void Parameters::update_a123(const Data& dat, Transformations& transf) {
 void Parameters::update_alpha(const Data& dat, Transformations& transf) {
   arma::mat C_rho_inv;
   double shape, rate;
-  shape = .5 + dat.nreg * dat.nreg * dat.ldim;
+  shape = .5 + .5 * dat.nreg * dat.nreg * dat.ldim;
   rate = .5;
   C_rho_inv = arma::inv_sympd(rho * transf.ones_mat + 
     (1 - rho) * arma::eye(dat.ldim, dat.ldim));
   for (arma::uword r = 0; r < dat.nreg; r++) {
     for (arma::uword rp = 0; rp < dat.nreg; rp++) {
-      rate = rate + arma::as_scalar(.5 * arma::vec(phi.tube(rp, r)).t() * 
+      rate = rate + .5 * arma::as_scalar(arma::vec(phi.tube(rp, r)).t() * 
         C_rho_inv * 
         arma::vec(phi.tube(rp, r)));
     }
   }
-  alpha = R::rgamma(shape, 1. / (1 + rate));
+  alpha = 1. / R::rgamma(shape, 1. / (1 + rate));
 }
 void Parameters::update_a12(const Data& dat, Transformations& transf) {
   double offset = .5;

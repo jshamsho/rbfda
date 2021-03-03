@@ -22,18 +22,18 @@ void Sampler::sample() {
         goto stop;
       }
       transf.complete_response(dat, pars);
-      
+
+      pars.update_lambda(dat, transf);
+      pars.update_zeta(dat, transf);
+      pars.update_phi(dat, transf);
+      pars.update_rho(dat, transf);
       pars.update_eta(dat, transf);
       pars.update_beta(dat, transf);
       pars.update_delta_beta(dat, transf);
       pars.update_delta_eta(dat, transf);
       pars.update_omega(dat, transf);
       pars.update_xi_eta(dat, transf);
-      pars.update_zeta(dat, transf);
-      pars.update_phi(dat, transf);
-      pars.update_lambda(dat, transf);
-      
-      pars.update_rho(dat, transf);
+      pars.update_alpha(dat, transf);
       pars.update_nu(dat, transf);
       pars.update_a123(dat, transf);
       // pars.update_a12(dat, transf);
@@ -65,7 +65,7 @@ void Sampler::write_samples() {
   pars.tau_phi0_container.slice(current_iter) = pars.tau_phi0;
   pars.sigmasqetai_container.slice(current_iter) = pars.sigmasqetai;
   pars.delta_eta_container.slice(current_iter) = pars.delta_eta;
-  pars.nu_container.col(current_iter) = pars.nu;
+  pars.nu_container(current_iter) = pars.nu;
   pars.a1_container(current_iter) = pars.a1;
   pars.a2_container(current_iter) = pars.a2;
   pars.a3_container(current_iter) = pars.a3;

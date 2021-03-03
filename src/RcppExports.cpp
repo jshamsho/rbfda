@@ -6,6 +6,41 @@
 
 using namespace Rcpp;
 
+// get_test_stat
+double get_test_stat(arma::mat eta);
+RcppExport SEXP _rbfda_get_test_stat(SEXP etaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type eta(etaSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_test_stat(eta));
+    return rcpp_result_gen;
+END_RCPP
+}
+// reshape_nreg
+arma::mat reshape_nreg(arma::mat eta, arma::uword nsub, arma::uword nreg);
+RcppExport SEXP _rbfda_reshape_nreg(SEXP etaSEXP, SEXP nsubSEXP, SEXP nregSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type eta(etaSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type nsub(nsubSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type nreg(nregSEXP);
+    rcpp_result_gen = Rcpp::wrap(reshape_nreg(eta, nsub, nreg));
+    return rcpp_result_gen;
+END_RCPP
+}
+// postcheck
+arma::mat postcheck(Rcpp::List mcmc);
+RcppExport SEXP _rbfda_postcheck(SEXP mcmcSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type mcmc(mcmcSEXP);
+    rcpp_result_gen = Rcpp::wrap(postcheck(mcmc));
+    return rcpp_result_gen;
+END_RCPP
+}
 // rcpparma_hello_world
 arma::mat rcpparma_hello_world();
 RcppExport SEXP _rbfda_rcpparma_hello_world() {
@@ -71,6 +106,9 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_rbfda_get_test_stat", (DL_FUNC) &_rbfda_get_test_stat, 1},
+    {"_rbfda_reshape_nreg", (DL_FUNC) &_rbfda_reshape_nreg, 3},
+    {"_rbfda_postcheck", (DL_FUNC) &_rbfda_postcheck, 1},
     {"_rbfda_rcpparma_hello_world", (DL_FUNC) &_rbfda_rcpparma_hello_world, 0},
     {"_rbfda_rcpparma_outerproduct", (DL_FUNC) &_rbfda_rcpparma_outerproduct, 1},
     {"_rbfda_rcpparma_innerproduct", (DL_FUNC) &_rbfda_rcpparma_innerproduct, 1},

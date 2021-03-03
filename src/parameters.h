@@ -30,12 +30,13 @@ class Parameters {
     double old_logpost = -arma::datum::inf;
     double rho, alpha;
     double a1, a2, a3;
-    arma::vec omega, nu, nup, zeta, rho_container, alpha_container,
-      a1_container, a2_container, a3_container;
+    double nu;
+    arma::vec omega, zeta, rho_container, alpha_container,
+      a1_container, a2_container, a3_container, nu_container;
     arma::mat lambda, sigmasqeta, sigmasqetai, delta, eta, xi_eta, delta_eta,
       beta, delta_beta, phi0, tau_phi0;
     arma::cube phi, init_phi;
-    arma::mat omega_container, zeta_container, nu_container;
+    arma::mat omega_container, zeta_container;
     arma::cube lambda_container, eta_container, sigmasqetai_container, 
       sigmasqeta_container, xi_eta_container, beta_container, delta_beta_container,
       delta_eta_container, phi0_container, tau_phi0_container;

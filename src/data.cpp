@@ -28,8 +28,10 @@ Rcpp::List Data::write_data() {
   return Rcpp::List::create(Rcpp::Named("response", response),
                             Rcpp::Named("basis", basis),
                             Rcpp::Named("time", time),
-                            Rcpp::Named("latent_dimension", ldim),
+                            Rcpp::Named("ldim", ldim),
                             Rcpp::Named("missing_subjects", missing_sub),
                             Rcpp::Named("missing_time", missing_time),
-                            Rcpp::Named("design_mean", design));
+                            Rcpp::Named("design_mean", design),
+                            Rcpp::Named("nsub", nsub),
+                            Rcpp::Named("nreg", nreg));
 }
