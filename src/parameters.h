@@ -32,15 +32,16 @@ class Parameters {
     double a1, a2, a3;
     double nu;
     arma::vec omega, zeta, rho_container, alpha_container,
-      a1_container, a2_container, a3_container, nu_container;
+      a1_container, a2_container, a3_container, nu_container, delta_lambda;
     arma::mat lambda, sigmasqeta, sigmasqetai, delta, eta, xi_eta, delta_eta,
-      beta, delta_beta, phi0, tau_phi0;
-    arma::cube phi, init_phi;
+      beta, delta_beta, phi0, tau_phi0, xi_lambda, delta_phi;
+    arma::cube phi, init_phi, xi_lambda_container;
     arma::mat omega_container, zeta_container;
     arma::cube lambda_container, eta_container, sigmasqetai_container, 
       sigmasqeta_container, xi_eta_container, beta_container, delta_beta_container,
-      delta_eta_container, phi0_container, tau_phi0_container;
-    arma::field<arma::cube> phi_container;
+      delta_eta_container, phi0_container, tau_phi0_container, delta_lambda_container, 
+      xi_phi, delta_phi_container;
+    arma::field<arma::cube> phi_container, xi_phi_container;
     
     // omega_container = arma::mat(dat.nreg, dat.iter);
     // zeta_container = arma::mat(dat.ldim, dat.iter);
@@ -66,5 +67,10 @@ class Parameters {
     void update_a12(const Data&, Transformations&);
     void update_a123(const Data&, Transformations&);
     void update_alpha(const Data&, Transformations&);
+    void update_delta_lambda(const Data&, Transformations&);
+    void update_xi_lambda(const Data&, Transformations&);
+    void update_delta_phi(const Data&, Transformations&);
+    void update_xi_phi(const Data&, Transformations&);
+    
 };
 #endif

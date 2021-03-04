@@ -465,19 +465,19 @@ void Parameters::update_phi(const Data& dat, Transformations& transf) {
     }
   }
   // Align eigenvectors
-  // for (arma::uword l = 0; l < dat.ldim; l++) {
-  //   for (arma::uword r = 0; r < dat.nreg; r++) {
-  //     arma::uvec r_ind = arma::regspace<arma::uvec>(r, dat.nreg, (dat.nsub - 1) * dat.nreg + r);
-  //     if (arma::accu(arma::square(phi.slice(l).col(r) + init_phi.slice(l).col(r))) <
-  //       arma::accu(arma::square(phi.slice(l).col(r) - init_phi.slice(l).col(r)))) {
-  //       Rcpp::Rcout << "l = " << l << "  r = " << r << "\n";
-  //       phi.slice(l).col(r) = -phi.slice(l).col(r);
-  //       // arma::vec(beta.col(l)).rows(r * dat.designdim, (r + 1) * dat.designdim - 1) = -arma::vec(beta.col(l)).rows(r * dat.designdim, (r + 1) * dat.designdim - 1);
-  //       // arma::vec(eta.col(l)).rows(r_ind) = -arma::vec(eta.col(l)).rows(r_ind);
-  //       // arma::vec(transf.fit_eta.col(l)).rows(r_ind) = -arma::vec(transf.fit_eta.col(l)).rows(r_ind);
-  //     }
-  //   }
-  // }
+  for (arma::uword l = 0; l < dat.ldim; l++) {
+    for (arma::uword r = 0; r < dat.nreg; r++) {
+      arma::uvec r_ind = arma::regspace<arma::uvec>(r, dat.nreg, (dat.nsub - 1) * dat.nreg + r);
+      if (arma::accu(arma::square(phi.slice(l).col(r) + init_phi.slice(l).col(r))) <
+        arma::accu(arma::square(phi.slice(l).col(r) - init_phi.slice(l).col(r)))) {
+        // Rcpp::Rcout << "l = " << l << "  r = " << r << "\n";
+        phi.slice(l).col(r) = -phi.slice(l).col(r);
+        arma::vec(beta.col(l)).rows(r * dat.designdim, (r + 1) * dat.designdim - 1) = -arma::vec(beta.col(l)).rows(r * dat.designdim, (r + 1) * dat.designdim - 1);
+        arma::vec(eta.col(l)).rows(r_ind) = -arma::vec(eta.col(l)).rows(r_ind);
+        arma::vec(transf.fit_eta.col(l)).rows(r_ind) = -arma::vec(transf.fit_eta.col(l)).rows(r_ind);
+      }
+    }
+  }
 }
 
 void Parameters::update_phi0(const Data& dat, Transformations &transf) {
@@ -690,3 +690,4 @@ void Parameters::update_a12(const Data& dat, Transformations& transf) {
     a2 = a_proposal;
   }
 }
+

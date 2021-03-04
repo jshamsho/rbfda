@@ -2,8 +2,8 @@ library(mgcv)
 source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/initialize_mcmc.R")
 nt <- 60
 tt <- seq(from = 0, to = 1, length.out = nt)
-nreg <- 3
-nsub <- 100
+nreg <- 6
+nsub <- 200
 ndf <- 15
 d <- 2
 ldim <- 4
@@ -22,7 +22,6 @@ sigma <- ldim:1
 for (l in 1:ldim) {
   for (i in 1:nsub) {
     for (r in 1:nreg) {
-      print((ldim - l + 1) * 1 / r)
       eta[(i - 1) * nreg + r, l] <- rnorm(1, sd = (ldim - l + 1) * 1 / r)
     }
   }
@@ -70,56 +69,57 @@ for (i in 1:nsub) {
     Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + 
       c(eigenfuncs[,l] %*% t(eta[((i - 1) * nreg + 1):(i * nreg), l]) %*% t(phi[,,l])) 
   }
-  Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + c(rnorm(nt * nreg, sd = .1))
+  Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + c(rnorm(nt * nreg, sd = 1))
 }
 
-# eigenfunc <- matrix(0, 60, 1000)
-# for (b in 1:1000) {
-#   print(b)
-#   Yboot <- matrix(0, nt * nsub, nreg)
-#   for (i in 1:nsub) {
-#     this_sample <- sample(1:nsub, replace = TRUE)
-#     Yboot[((i -1) * nt + 1):(i * nt), ] <- Y[((this_sample[i] -1) * nt + 1):(this_sample[i] * nt), ]
-#   }
-#   this_init <- initialize_mcmc(Yboot, tt, nt, B, X, ldim = 4)
-#   eigenfunc[,b] <- B %*% this_init$lambda[,1]
-# }
-# for (b in 1:1000) {
-#   if (sum((eigenfunc[,b] + eigenfunc[,1])^2) < sum((eigenfunc[,b] - eigenfunc[,1])^2)) {
-#     eigenfunc[,b] <- -eigenfunc[,b]
-#   }
-# 
-# }
+eigenfunc <- matrix(0, 60, 1000)
+for (b in 1:1000) {
+  print(b)
+  Yboot <- matrix(0, nt * nsub, nreg)
+  for (i in 1:nsub) {
+    this_sample <- sample(1:nsub, replace = TRUE)
+    Yboot[((i -1) * nt + 1):(i * nt), ] <- Y[((this_sample[i] -1) * nt + 1):(this_sample[i] * nt), ]
+  }
+  this_init <- initialize_mcmc(Yboot, tt, nt, B, X, ldim = 4)
+  eigenfunc[,b] <- B %*% this_init$lambda[,1]
+}
+for (b in 1:1000) {
+  if (sum((eigenfunc[,b] + eigenfunc[,1])^2) < sum((eigenfunc[,b] - eigenfunc[,1])^2)) {
+    eigenfunc[,b] <- -eigenfunc[,b]
+  }
+
+}
+matlines(eigenfunc)
 X <- cbind(rep(1, nsub), matrix(rnorm(nsub * (d - 1)), nrow = nsub, ncol = d - 1))
 basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2), data.frame(tt), absorb.cons = FALSE)
 B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
 matplot(tt, B, xlab = "time", ylab = "spline", type = "l")
 init_mcmc <- initialize_mcmc(Y, tt, nt, B, X)
-microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, init_mcmc$npc, 10000, 500, 5, init_mcmc), times = 1)
+microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, init_mcmc$npc, 1000, 2500, 10, init_mcmc), times = 1)
 
 testmat <- postcheck(result)
 sum(testmat[,2] > testmat[,1]) / (result$control$iterations - result$control$burnin)
-plot(testmat[,1], testmat[,2])
+plot(testmat[,1], testmat[,2], xlab = "S_n", ylab = "tilde_S_n")
 abline(a = 0, b = 1)
 plot(testmat[,1], type = "l")
 
 scale <- init_mcmc$alpha
 rho <- .1
 C_rho <- scale * rho * rep(1, ldim) %*% t(rep(1, ldim)) + scale * (1 - rho) * diag(ldim)
-phi_mat <- matrix(0, nrow = nreg^2, ldim)
+phi_mat <- matrix(0, nrow = nreg^ 2, ldim)
 log_phi <- 0
 for (r in 1:nreg) {
   for (rp in 1:nreg) {
     # x <- phi[r, rp, ]
-    x <- result$samples$phi[[900]][rp,r,]
+    x <- result$samples$phi[[1000]][rp,r,]
     phi_mat[(r - 1) * nreg + rp, ] <- x
     log_phi <- log_phi + mvtnorm::dmvnorm(x, rep(0, ldim), sigma = C_rho, log = TRUE)
   }
 }
 sum(mvtnorm::dmvnorm(phi_mat, rep(0, ldim), sigma = C_rho, log = TRUE))
 pairs(phi_mat)
-
+hist(result$samples$rho)
 eta_mat <- matrix(0, nrow = nsub, ncol = ldim * nreg)
 counter <- 1
 for (l in 1:ldim) {
@@ -132,10 +132,10 @@ for (l in 1:ldim) {
 }
 
 cov(eta_mat)
-efunc <- 1
+efunc <- 4
 plot(B %*% result$samples$lambda[,efunc,100], type = "l")
 evec <- numeric(500)
-for (i in 501:1000) {
+for (i in 101:1000) {
   lines(B %*% result$samples$lambda[,efunc,i])
   evec[i] <- (B %*% result$samples$lambda[,efunc,i])[30]
 }
@@ -143,8 +143,8 @@ lines(-eigenfuncs[,efunc], col = "red")
 lines(B %*% init_mcmc$lambda[,efunc], col = "green")
 sum((B %*% init_mcmc$lambda[,efunc] + eigenfuncs[,efunc])^2)
 sum((B %*% apply(result$samples$lambda[,efunc,], 1, median) + eigenfuncs[,efunc])^2)
-r <- 5
-i <- 5
+r <- 2
+i <- 12
 plot(Y[((i - 1) * nt + 1):(i * nt),r])
 seqr <- ((i - 1) * nreg + 1):(i * nreg)
 for (i in 501:1000) {
@@ -173,9 +173,13 @@ for (i in 1:1000) {
     
   }
 }
-plot(1 / delta_eta_cumprod[1,4,])
-abline(h = 1 / init_mcmc$preceta[1,4])
-quantile(1 / delta_eta_cumprod[1,1,1:1000], c(.025, .975))
+r <- 2
+l <- 3
+plot(1 / delta_eta_cumprod[r,l,])
+abline(h = 1 / init_mcmc$preceta[r,l])
+abline(h = ((ldim - l + 1) * 1 / r)^2, col = "red")
+quantile(1 / delta_eta_cumprod[r,l,1:1000], c(.025, .975))
+((ldim - l + 1) * 1 / r)^2
 
 1 / delta_eta_cumprod[,,1000]
 
@@ -273,3 +277,58 @@ for (i in 1:10000) {
 median(myt)
 hist(1 - myt)
 mean(stde)
+
+
+sample_tau <- function(y, mu) {
+  n <- length(y)
+  y_centered <- y - mu
+  return(1 / rgamma(1, shape = 2 + .5 * n, rate = 2 + .5 * t(y_centered) %*% y_centered))
+}
+
+sample_mu <- function(y, tau) {
+  n <- length(y)
+  Q <- (n / tau + 0)
+  b <- sum(y) / tau
+  mu <- rnorm(1, b / Q, 1 / sqrt(Q))
+}
+sdseq <- seq(from = .2, to = 5, by = .5)
+nseq <- nseq <- rep(30, 30)
+s1 <- numeric(length(nseq))
+s2 <- numeric(length(nseq))
+for (n in 1:length(nseq)) {
+  y <- rnorm(nseq[n], mean = .5, sd = 2)
+  iter <- 15000
+  tau_c <- numeric(iter)
+  mu_c <- numeric(iter)
+  test1 <- numeric(iter)
+  test2 <- numeric(iter)
+  tau <- 1
+  mu <- 1
+  for (i in 1:iter) {
+    # tau <- sample_tau(y, mu)
+    tau <- var(y)
+    # mu <- sample_mu(y, tau)
+    mu <- mean(y)
+    tau_c[i] <- tau
+    mu_c[i] <- mu
+  }
+  
+  for (i in 1:iter) {
+    y_centered <- y - mu_c[i]
+    fakey_h0 <- rnorm(nseq[n], mean = 0, sqrt(tau_c[i]))
+    fakey_h0_centered <- fakey_h0
+    test1[i] <- t(y_centered) %*% y_centered / sqrt(tau_c[i])
+    test2[i] <- t(fakey_h0_centered) %*% fakey_h0_centered / sqrt(tau_c[i])
+    # test3[i] <- t(y) %*% y
+  }
+  
+  
+  s1[n] <- sum(test1 > test2) / iter
+  s2[n] <- t.test(y)$p.value
+}
+plot(s1, s2)
+abline(a = 0, b = 1)
+
+pdim <- 4
+rho <- .5
+C11 <- rho * rep(1, pdim) %*% t(rep(1, pdim)) + (1 - rho) * diag(pdim)
