@@ -36,10 +36,10 @@ class Parameters {
     arma::mat lambda, sigmasqeta, sigmasqetai, delta, eta, xi_eta, delta_eta,
       beta, delta_beta, phi0, tau_phi0, xi_lambda, delta_phi;
     arma::cube phi, init_phi, xi_lambda_container;
-    arma::mat omega_container, zeta_container;
+    arma::mat omega_container, zeta_container, delta_lambda_container;
     arma::cube lambda_container, eta_container, sigmasqetai_container, 
       sigmasqeta_container, xi_eta_container, beta_container, delta_beta_container,
-      delta_eta_container, phi0_container, tau_phi0_container, delta_lambda_container, 
+      delta_eta_container, phi0_container, tau_phi0_container, 
       xi_phi, delta_phi_container;
     arma::field<arma::cube> phi_container, xi_phi_container;
     

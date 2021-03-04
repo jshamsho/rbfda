@@ -11,7 +11,8 @@ Transformations::Transformations(Data& dat, Parameters& pars) {
   psi_lin_constr = arma::zeros(dat.ldim, dat.basisdim);
   phi_lin_constr = arma::zeros(dat.ldim * dat.nreg, dat.ldim * dat.nreg);
   delta_eta_cumprod = arma::mat(dat.nreg, dat.ldim);
-  lambda_mag = arma::vec(dat.ldim);
+  psi_mag = arma::vec(dat.ldim);
+  phi_mag = arma::mat(dat.nreg, dat.ldim);
   initialize_fit(dat, pars);
 }
 
@@ -51,7 +52,7 @@ void Transformations::initialize_fit(Data& dat, Parameters& pars) {
   // }
   for (arma::uword l = 0; l < dat.ldim; l++) {
     psi_lin_constr.row(l) = pars.lambda.col(l).t() * btb;
-    lambda_mag(l) = arma::as_scalar(pars.lambda.col(l).t() * pars.lambda.col(l));
+    psi_mag(l) = arma::dot(psi.col(l), psi.col(l));
   }
   for (arma::uword l = 0; l < dat.ldim; l++) {
     for (arma::uword r = 0; r < dat.nreg; r++) {

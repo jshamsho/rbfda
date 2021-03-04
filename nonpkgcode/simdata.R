@@ -96,7 +96,7 @@ B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
 matplot(tt, B, xlab = "time", ylab = "spline", type = "l")
 init_mcmc <- initialize_mcmc(Y, tt, nt, B, X)
-microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, init_mcmc$npc, 1000, 2500, 10, init_mcmc), times = 1)
+microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, init_mcmc$npc, 1000, 2500, 1, init_mcmc), times = 1)
 
 testmat <- postcheck(result)
 sum(testmat[,2] > testmat[,1]) / (result$control$iterations - result$control$burnin)
@@ -132,7 +132,7 @@ for (l in 1:ldim) {
 }
 
 cov(eta_mat)
-efunc <- 4
+efunc <- 1
 plot(B %*% result$samples$lambda[,efunc,100], type = "l")
 evec <- numeric(500)
 for (i in 101:1000) {
@@ -143,8 +143,8 @@ lines(-eigenfuncs[,efunc], col = "red")
 lines(B %*% init_mcmc$lambda[,efunc], col = "green")
 sum((B %*% init_mcmc$lambda[,efunc] + eigenfuncs[,efunc])^2)
 sum((B %*% apply(result$samples$lambda[,efunc,], 1, median) + eigenfuncs[,efunc])^2)
-r <- 2
-i <- 12
+r <- 1
+i <- 1
 plot(Y[((i - 1) * nt + 1):(i * nt),r])
 seqr <- ((i - 1) * nreg + 1):(i * nreg)
 for (i in 501:1000) {
