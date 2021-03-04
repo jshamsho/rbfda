@@ -69,9 +69,9 @@ for (i in 1:nsub) {
     Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + 
       c(eigenfuncs[,l] %*% t(eta[((i - 1) * nreg + 1):(i * nreg), l]) %*% t(phi[,,l])) 
   }
-  Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + c(rnorm(nt * nreg, sd = 1))
+  Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + c(rnorm(nt * nreg, sd = .1))
 }
-
+# 
 eigenfunc <- matrix(0, 60, 1000)
 for (b in 1:1000) {
   print(b)
@@ -89,7 +89,7 @@ for (b in 1:1000) {
   }
 
 }
-matlines(eigenfunc)
+matlines(-eigenfunc)
 X <- cbind(rep(1, nsub), matrix(rnorm(nsub * (d - 1)), nrow = nsub, ncol = d - 1))
 basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2), data.frame(tt), absorb.cons = FALSE)
 B <- basisobj[[1]]$X
@@ -132,17 +132,17 @@ for (l in 1:ldim) {
 }
 
 cov(eta_mat)
-efunc <- 4
+efunc <- 1
 plot(B %*% result$samples$lambda[,efunc,100], type = "l")
 evec <- numeric(500)
 for (i in 101:1000) {
   lines(B %*% result$samples$lambda[,efunc,i])
   evec[i] <- (B %*% result$samples$lambda[,efunc,i])[30]
 }
-lines(-eigenfuncs[,efunc], col = "red")
+lines(eigenfuncs[,efunc], col = "red")
 lines(B %*% init_mcmc$lambda[,efunc], col = "green")
-sum((B %*% init_mcmc$lambda[,efunc] + eigenfuncs[,efunc])^2)
-sum((B %*% apply(result$samples$lambda[,efunc,], 1, median) + eigenfuncs[,efunc])^2)
+sum((B %*% init_mcmc$lambda[,efunc] - eigenfuncs[,efunc])^2)
+sum((B %*% apply(result$samples$lambda[,efunc,], 1, median) - eigenfuncs[,efunc])^2)
 r <- 2
 i <- 12
 plot(Y[((i - 1) * nt + 1):(i * nt),r])
@@ -168,13 +168,13 @@ delta_eta_cumprod <- array(0, dim = c(nreg, ldim, 1000))
 for (i in 1:1000) {
   initd <- cumprod(result$samples$delta_eta[1,,i])
   delta_eta_cumprod[,1,i] <- cumprod(result$samples$delta_eta[,1,i])
-  for (l in 2:ldim) {
+  for (l in 2:3) {
     delta_eta_cumprod[,l,i] <- cumprod(result$samples$delta_eta[,l,i]) * initd[l - 1]
     
   }
 }
 r <- 2
-l <- 3
+l <- 1
 plot(1 / delta_eta_cumprod[r,l,])
 abline(h = 1 / init_mcmc$preceta[r,l])
 abline(h = ((ldim - l + 1) * 1 / r)^2, col = "red")

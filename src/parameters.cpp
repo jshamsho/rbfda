@@ -421,19 +421,30 @@ void Parameters::update_phi(const Data& dat, Transformations& transf) {
   diag_r = arma::eye(dat.nreg, dat.nreg);
   transf.fit.zeros();
   arma::uvec constr_indices;
+  arma::mat tmprm = arma::vec(dat.ldim * dat.nreg);
+  arma::mat tmpad = arma::vec(dat.ldim * dat.nreg);
   for (arma::uword r = 0; r < dat.nreg; r++) {
-    b.zeros();
+    tmpad.zeros();
+    tmprm.zeros();
     eta_sum.zeros();
     r_ind = arma::regspace<arma::uvec>(r, dat.nreg, (dat.nreg - 1) * dat.ldim + r);
     for (arma::uword i = 0; i < dat.nsub; i++) {
       first = i * dat.nt, last = (i + 1) * dat.nt - 1;
       idx = i * dat.nreg + r;
       diageta = arma::diagmat(eta.row(idx));
-      b = b + arma::vectorise(diagomega * dat.response.rows(first, last).t() *
+      tmpad = tmpad + arma::vectorise(diagomega * dat.response.rows(first, last).t() *
         transf.psi * diageta);
+      for (arma::uword rp = 0; rp < dat.nreg; rp++) {
+        if (rp != r) {
+          tmprm = tmprm + arma::vectorise(diagomega * 
+            arma::mat(phi.col(rp)) * 
+            arma::as_scalar(eta.row(i * dat.nreg + rp) * eta.row(idx).t()));
+        }
+      }
       eta_sum = eta_sum + diageta * diageta;
     }
-    b = b + arma::vectorise(arma::reshape(phi0.col(r), dat.nreg, dat.ldim) * C_inv);
+    // b = b + arma::vectorise(arma::reshape(phi0.col(r), dat.nreg, dat.ldim) * C_inv);
+    b = tmpad - tmprm;
     Q = arma::kron(eta_sum, diagomega) +
       arma::kron(C_inv, diag_r);
     if (r > 0) {
@@ -443,7 +454,7 @@ void Parameters::update_phi(const Data& dat, Transformations& transf) {
           arma::regspace<arma::uvec>(
             r - 1, dat.nreg, (dat.ldim - 1) * dat.nreg + r)));
     }
-    phi_temp = bayesreg_orth(b, Q, transf.phi_lin_constr.rows(constr_indices));
+    phi_temp = bayesreg_orth(tmpad, Q, transf.phi_lin_constr.rows(constr_indices));
     
 
     for (arma::uword l = 0; l < dat.ldim; l++) {

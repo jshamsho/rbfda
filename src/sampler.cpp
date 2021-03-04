@@ -32,7 +32,8 @@ void Sampler::sample() {
       pars.update_delta_beta(dat, transf);
       pars.update_delta_eta(dat, transf);
       pars.update_omega(dat, transf);
-      pars.update_xi_eta(dat, transf);
+      pars.xi_eta.ones();
+      // pars.update_xi_eta(dat, transf);
       pars.update_alpha(dat, transf);
       pars.update_nu(dat, transf);
       pars.update_a123(dat, transf);
