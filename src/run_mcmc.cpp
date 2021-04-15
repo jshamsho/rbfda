@@ -39,7 +39,8 @@ Rcpp::List run_mcmc(arma::mat response, arma::mat design,
            iter, burnin, thin);
   Parameters pars(dat, init_);
   Transformations transf(dat, pars);
-  
+  // Sampler* mysampler = SamplerFactory::new_mcmc(var, dat, pars, transf);
+  // mysampler->sample();
   Sampler mysampler(dat, pars, transf);
   
   mysampler.sample();

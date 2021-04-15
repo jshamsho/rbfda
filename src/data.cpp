@@ -10,6 +10,7 @@ Data::Data(arma::mat& response, arma::mat& design,
   this->designdim = design.n_cols;
   this->basis= basis;
   this->penalty = penalty;
+  this->penalty_rank = arma::rank(penalty);
   this->ldim = ldim;
   this->basisdim = basis.n_cols;
   this->time = time;

@@ -2,7 +2,7 @@ library(mgcv)
 source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/initialize_mcmc.R")
 nt <- 60
 tt <- seq(from = 0, to = 1, length.out = nt)
-nreg <- 6
+nreg <- 4
 nsub <- 200
 ndf <- 15
 d <- 2
@@ -34,35 +34,35 @@ for (r in 1:nreg) {
 for (l in 1:ldim) {
   # phi[,,l] <- diag(nreg)
   # phi[,,l] <- rWishart(1, 10, diag(nreg))
-  # phi[,,l] <- pracma::randortho(nreg)
-  phi[,,l] <- orthmat
+  phi[,,l] <- pracma::randortho(nreg)
+  # phi[,,l] <- orthmat
   # phi[,,l] <- matrix(rnorm(nreg * nreg), nreg, nreg)
   # phi[,,l] <- Re(eigen(phi[,,l])$vectors)
 }
 # phi[,,3] <- pracma::randortho(nreg)
-scale <- init_mcmc$alpha
-rho <- .01
-C_rho <- scale * rho * rep(1, ldim) %*% t(rep(1, ldim)) + scale * (1 - rho) * diag(ldim)
-phi_mat <- matrix(0, nrow = nreg^2, ldim)
-log_phi <- 0
-for (r in 1:nreg) {
-  for (rp in 1:nreg) {
-    # x <- phi[r, rp, ]
-    x <- phi[rp, r,]
-    phi_mat[(r - 1) * nreg + rp, ] <- x
-    log_phi <- log_phi + mvtnorm::dmvnorm(x, rep(0, ldim), sigma = C_rho, log = TRUE)
-  }
-}
-sum(mvtnorm::dmvnorm(phi_mat, rep(0, ldim), sigma = C_rho, log = TRUE))
-cov(phi_mat)
-cor(phi_mat)
-log_phi
-c_inv <- solve(cor(phi_mat))
-rate <- 0
-for (i in 1:(nreg * nreg)) {
-  rate <- rate + phi_mat[i,] %*% c_inv %*% phi_mat[i,]
-}
-1 / rgamma(10, shape = .5 + .5 * nreg * nreg * 4, rate = .5 + .5 * rate)
+# scale <- init_mcmc$alpha
+# rho <- .01
+# C_rho <- scale * rho * rep(1, ldim) %*% t(rep(1, ldim)) + scale * (1 - rho) * diag(ldim)
+# phi_mat <- matrix(0, nrow = nreg^2, ldim)
+# log_phi <- 0
+# for (r in 1:nreg) {
+#   for (rp in 1:nreg) {
+#     # x <- phi[r, rp, ]
+#     x <- phi[rp, r,]
+#     phi_mat[(r - 1) * nreg + rp, ] <- x
+#     log_phi <- log_phi + mvtnorm::dmvnorm(x, rep(0, ldim), sigma = C_rho, log = TRUE)
+#   }
+# }
+# sum(mvtnorm::dmvnorm(phi_mat, rep(0, ldim), sigma = C_rho, log = TRUE))
+# cov(phi_mat)
+# cor(phi_mat)
+# log_phi
+# c_inv <- solve(cor(phi_mat))
+# rate <- 0
+# for (i in 1:(nreg * nreg)) {
+#   rate <- rate + phi_mat[i,] %*% c_inv %*% phi_mat[i,]
+# }
+# 1 / rgamma(10, shape = .5 + .5 * nreg * nreg * 4, rate = .5 + .5 * rate)
 Y <- matrix(0, nsub * nt, ncol = nreg)
 for (i in 1:nsub) {
   for (l in 1:ldim) {
@@ -72,33 +72,55 @@ for (i in 1:nsub) {
   Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + c(rnorm(nt * nreg, sd = .1))
 }
 # 
-eigenfunc <- matrix(0, 60, 1000)
-for (b in 1:1000) {
-  print(b)
-  Yboot <- matrix(0, nt * nsub, nreg)
-  for (i in 1:nsub) {
-    this_sample <- sample(1:nsub, replace = TRUE)
-    Yboot[((i -1) * nt + 1):(i * nt), ] <- Y[((this_sample[i] -1) * nt + 1):(this_sample[i] * nt), ]
-  }
-  this_init <- initialize_mcmc(Yboot, tt, nt, B, X, ldim = 4)
-  eigenfunc[,b] <- B %*% this_init$lambda[,1]
-}
-for (b in 1:1000) {
-  if (sum((eigenfunc[,b] + eigenfunc[,1])^2) < sum((eigenfunc[,b] - eigenfunc[,1])^2)) {
-    eigenfunc[,b] <- -eigenfunc[,b]
-  }
-
-}
-matlines(-eigenfunc)
+# eigenfunc <- matrix(0, 60, 1000)
+# var11 <- numeric(1000)
+# for (b in 1:1000) {
+#   print(b)
+#   Yboot <- matrix(0, nt * nsub, nreg)
+#   for (i in 1:nsub) {
+#     this_sample <- sample(1:nsub, replace = TRUE)
+#     Yboot[((i -1) * nt + 1):(i * nt), ] <- Y[((this_sample[i] -1) * nt + 1):(this_sample[i] * nt), ]
+#   }
+#   this_init <- initialize_mcmc(Yboot, tt, nt, B, X, ldim = 4)
+#   eigenfunc[,b] <- B %*% this_init$lambda[,1]
+#   var11[b] <- 1 / this_init$preceta[2,1]
+# }
+# for (b in 1:1000) {
+#   if (sum((eigenfunc[,b] + eigenfunc[,1])^2) < sum((eigenfunc[,b] - eigenfunc[,1])^2)) {
+#     eigenfunc[,b] <- -eigenfunc[,b]
+#   }
+# }
+# matlines(-eigenfunc)
 X <- cbind(rep(1, nsub), matrix(rnorm(nsub * (d - 1)), nrow = nsub, ncol = d - 1))
 basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2), data.frame(tt), absorb.cons = FALSE)
 B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
 matplot(tt, B, xlab = "time", ylab = "spline", type = "l")
-init_mcmc <- initialize_mcmc(Y, tt, nt, B, X)
-microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, init_mcmc$npc, 1000, 2500, 10, init_mcmc), times = 1)
+init_mcmc <- initialize_mcmc(Y, tt, nt, B, X, ldim = 4)
+microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, init_mcmc$npc, 5000, 1000, 1, init_mcmc), times = 1)
 
-testmat <- postcheck(result)
+gamma1 <- function(a, b) {
+  gamma((b + 1) / 2) * gamma(a / 2) / (sqrt(pi) * gamma((a + b) / 2))
+}
+get_pval <- function(eta, nreg, iter) {
+  p <- ncol(eta) * nreg
+  nsub <- nrow(eta) / nreg
+  eta1 <- reshape_nreg(eta[,,iter], nsub, nreg)
+  cormat <- cor(eta1)
+  dp <- sum(abs(cormat[upper.tri(cormat)]))
+  # return(dp)
+  mu <- p * (p - 1) / 2 * gamma1(nsub - 1, 1)
+  tausq <- p * (p - 1) / 2 * (1 / (nsub - 1) - gamma1(nsub - 1, 1)^2)
+  teststat <- (dp - mu) / sqrt(tausq)
+  return(1 - pnorm(teststat))
+}
+
+get_pval(result$samples$eta, nreg, 4000)
+modadeq <- postcheck(result, refdist_samples = 10000)
+plot(density(modadeq$test_stat), type = "l")
+lines(density(modadeq$null_test_stat), col = "blue")
+eta1 <- reshape_nreg(result$samples$eta[,,5000], nsub, nreg)
+cor(eta1)
 sum(testmat[,2] > testmat[,1]) / (result$control$iterations - result$control$burnin)
 plot(testmat[,1], testmat[,2], xlab = "S_n", ylab = "tilde_S_n")
 abline(a = 0, b = 1)
@@ -106,18 +128,18 @@ plot(testmat[,1], type = "l")
 
 scale <- init_mcmc$alpha
 rho <- .1
-C_rho <- scale * rho * rep(1, ldim) %*% t(rep(1, ldim)) + scale * (1 - rho) * diag(ldim)
-phi_mat <- matrix(0, nrow = nreg^ 2, ldim)
+C_rho <- scale * rho * rep(1, init_mcmc$npc) %*% t(rep(1, init_mcmc$npc)) + scale * (1 - rho) * diag(init_mcmc$npc)
+phi_mat <- matrix(0, nrow = nreg^ 2, init_mcmc$npc)
 log_phi <- 0
 for (r in 1:nreg) {
   for (rp in 1:nreg) {
     # x <- phi[r, rp, ]
     x <- result$samples$phi[[1000]][rp,r,]
     phi_mat[(r - 1) * nreg + rp, ] <- x
-    log_phi <- log_phi + mvtnorm::dmvnorm(x, rep(0, ldim), sigma = C_rho, log = TRUE)
+    log_phi <- log_phi + mvtnorm::dmvnorm(x, rep(0, init_mcmc$npc), sigma = C_rho, log = TRUE)
   }
 }
-sum(mvtnorm::dmvnorm(phi_mat, rep(0, ldim), sigma = C_rho, log = TRUE))
+sum(mvtnorm::dmvnorm(phi_mat, rep(0, init_mcmc$npc), sigma = C_rho, log = TRUE))
 pairs(phi_mat)
 hist(result$samples$rho)
 eta_mat <- matrix(0, nrow = nsub, ncol = ldim * nreg)
@@ -132,22 +154,23 @@ for (l in 1:ldim) {
 }
 
 cov(eta_mat)
-efunc <- 1
+efunc <- 3
 plot(B %*% result$samples$lambda[,efunc,100], type = "l")
 evec <- numeric(500)
-for (i in 101:1000) {
+for (i in 1:1000) {
   lines(B %*% result$samples$lambda[,efunc,i])
   evec[i] <- (B %*% result$samples$lambda[,efunc,i])[30]
 }
 lines(eigenfuncs[,efunc], col = "red")
 lines(B %*% init_mcmc$lambda[,efunc], col = "green")
+lines(B %*% apply(result$samples$lambda[,efunc,],1,mean), col = "blue")
 sum((B %*% init_mcmc$lambda[,efunc] - eigenfuncs[,efunc])^2)
 sum((B %*% apply(result$samples$lambda[,efunc,], 1, median) - eigenfuncs[,efunc])^2)
 r <- 2
-i <- 12
+i <- 2
 plot(Y[((i - 1) * nt + 1):(i * nt),r])
 seqr <- ((i - 1) * nreg + 1):(i * nreg)
-for (i in 501:1000) {
+for (i in 201:1000) {
   tmpsum <- numeric(nt)
   for (l in 1:init_mcmc$npc) {
     tmpsum <- tmpsum + B %*% result$samples$lambda[,l, i] %*% t(result$samples$phi[[i]][r,,l]) %*% result$samples$eta[seqr, l, i]
@@ -157,27 +180,27 @@ for (i in 501:1000) {
 hist(result$samples$rho)
 
 iter <- 1000
-l <- 1
-r <- 1
+l <- 4
+r <- 6
 seqr <- seq(from = r, to = nsub * nreg, by = nreg)
 xb <- X %*% result$samples$beta[((r - 1) * d + 1):(r * d), l, iter]
 # sum(dgamma(result$samples$xi_eta[,,500], 1, rate = 1, log = TRUE))
 var(result$samples$eta[seqr,l,iter] - xb)
 result$samples$nu[iter]
-delta_eta_cumprod <- array(0, dim = c(nreg, ldim, 1000))
+delta_eta_cumprod <- array(0, dim = c(nreg, init_mcmc$npc, 1000))
 for (i in 1:1000) {
   initd <- cumprod(result$samples$delta_eta[1,,i])
   delta_eta_cumprod[,1,i] <- cumprod(result$samples$delta_eta[,1,i])
-  for (l in 2:3) {
+  for (l in 2:init_mcmc$npc) {
     delta_eta_cumprod[,l,i] <- cumprod(result$samples$delta_eta[,l,i]) * initd[l - 1]
-    
   }
 }
-r <- 2
+r <- 1
 l <- 1
-plot(1 / delta_eta_cumprod[r,l,])
+plot(1 / delta_eta_cumprod[r,l,201:1000])
 abline(h = 1 / init_mcmc$preceta[r,l])
 abline(h = ((ldim - l + 1) * 1 / r)^2, col = "red")
+1 / init_mcmc$preceta[r, l]
 quantile(1 / delta_eta_cumprod[r,l,1:1000], c(.025, .975))
 ((ldim - l + 1) * 1 / r)^2
 
@@ -206,13 +229,14 @@ for (l in 2:ldim) {
 #     delta_eta_cumprod[rp, lp] <- 0
 #   }
 # }
+iter <- 2
 tmpsum <- 0
 for (r in 1:nreg) {
-  for (l in 1:ldim) {
+  for (l in 1:init_mcmc$npc) {
     seqr <- seq(from = r, to = nsub * nreg, by = nreg)
     add_this <- t(result$samples$eta[seqr,l,iter - 1]) %*% 
       (result$samples$eta[seqr,l,iter - 1])
-    multiply_by <- delta_eta_cumprod[r, l]
+    multiply_by <- delta_eta_cumprod[r, l, iter - 1]
     tmpsum <- tmpsum + add_this * multiply_by
     print(result$samples$eta[seqr,l,iter][1:4])
     print(paste0("r = ", r, "  l = ", l, "  add_this = ", add_this, "  multiply_by = ", multiply_by))
@@ -332,3 +356,52 @@ abline(a = 0, b = 1)
 pdim <- 4
 rho <- .5
 C11 <- rho * rep(1, pdim) %*% t(rep(1, pdim)) + (1 - rho) * diag(pdim)
+
+cov1 <- array(0, dim = c(nreg * init_mcmc$npc, nreg * init_mcmc$npc, 1000))
+for (i in 1:1000) {
+  A1 <- reshape_nreg(result$samples$eta[,,i], nsub, nreg)
+  cov1[,,i] <- cov(A1)
+}
+hist(cov1[15,22,])
+
+x <- seq(from = 0, to = 5, length.out = 1000)
+f1 <- .001 * (x - 5)^4
+f1[1:100] <- 0
+f1[1000] <- 1e-6
+f2 <- .95 * f1
+f2[1:120] <- 0
+f3 <- .9 * f2
+f3[1:140] <- 0
+
+plot(x, f1, type = "l")
+lines(x, f2, col = "red")
+lines(x, f3, col = "green")
+
+A1 <- diag(f2 / f1)
+v <- which(is.nan(diag(A1)))
+A1[v, v] <- 0
+A2 <- diag(f3 / f2)
+v <- which(is.nan(diag(A2)))
+A2[v, v] <- 0
+
+plot(x, f1, type = "l")
+lines(x, A1 %*% f1, col = "red")
+lines(x, A2 %*% f2, col = "green")
+lines(x, A2 %*% A1 %*% f1, col = "blue")
+
+
+x <- seq(from = 0, to = 5, length.out = 1000)
+f1 <- .001 * (x - 5)^4
+f1[1:100] <- 0
+f2 <- .00004 * (x - 5)^6
+f2[1:100] <- 0
+plot(x, f1, type = "l")
+lines(x, f2, col = "red")
+
+crit <- which.max(f1)
+mp <- f2[crit:1000] / f1[crit:1000]
+mp[length(mp)] <- 0
+mp_ext <- c(rep(0, crit - 1), mp)
+plot(x, f1, type = "l")
+lines(x, diag(mp_ext) %*% f1, col = "red")
+

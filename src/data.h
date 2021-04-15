@@ -5,7 +5,7 @@
 
 class Data {
 public:
-  arma::uword basisdim, ldim, nsub, nreg, nt, designdim;
+  arma::uword basisdim, ldim, nsub, nreg, nt, designdim, penalty_rank;
   arma::uvec missing, missing_sub, missing_time, missing_reg;
   arma::mat response;
   arma::mat design;

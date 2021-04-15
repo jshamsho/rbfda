@@ -6,14 +6,16 @@
 
 using namespace Rcpp;
 
-// get_test_stat
-double get_test_stat(arma::mat eta);
-RcppExport SEXP _rbfda_get_test_stat(SEXP etaSEXP) {
+// get_pval
+double get_pval(arma::mat eta, arma::uword nreg, arma::uword ldim);
+RcppExport SEXP _rbfda_get_pval(SEXP etaSEXP, SEXP nregSEXP, SEXP ldimSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type eta(etaSEXP);
-    rcpp_result_gen = Rcpp::wrap(get_test_stat(eta));
+    Rcpp::traits::input_parameter< arma::uword >::type nreg(nregSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type ldim(ldimSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_pval(eta, nreg, ldim));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -31,13 +33,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // postcheck
-arma::mat postcheck(Rcpp::List mcmc);
-RcppExport SEXP _rbfda_postcheck(SEXP mcmcSEXP) {
+Rcpp::List postcheck(Rcpp::List mcmc, arma::uword refdist_samples);
+RcppExport SEXP _rbfda_postcheck(SEXP mcmcSEXP, SEXP refdist_samplesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::List >::type mcmc(mcmcSEXP);
-    rcpp_result_gen = Rcpp::wrap(postcheck(mcmc));
+    Rcpp::traits::input_parameter< arma::uword >::type refdist_samples(refdist_samplesSEXP);
+    rcpp_result_gen = Rcpp::wrap(postcheck(mcmc, refdist_samples));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -106,9 +109,9 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_rbfda_get_test_stat", (DL_FUNC) &_rbfda_get_test_stat, 1},
+    {"_rbfda_get_pval", (DL_FUNC) &_rbfda_get_pval, 3},
     {"_rbfda_reshape_nreg", (DL_FUNC) &_rbfda_reshape_nreg, 3},
-    {"_rbfda_postcheck", (DL_FUNC) &_rbfda_postcheck, 1},
+    {"_rbfda_postcheck", (DL_FUNC) &_rbfda_postcheck, 2},
     {"_rbfda_rcpparma_hello_world", (DL_FUNC) &_rbfda_rcpparma_hello_world, 0},
     {"_rbfda_rcpparma_outerproduct", (DL_FUNC) &_rbfda_rcpparma_outerproduct, 1},
     {"_rbfda_rcpparma_innerproduct", (DL_FUNC) &_rbfda_rcpparma_innerproduct, 1},
