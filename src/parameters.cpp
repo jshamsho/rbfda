@@ -1,11 +1,10 @@
 #include "parameters.h"
 
-Parameters::Parameters(Data& dat, Rcpp::Nullable<Rcpp::List> init_ = R_NilValue) {
+ParametersPartial::ParametersPartial(const Data& dat, Rcpp::Nullable<Rcpp::List> init_ = R_NilValue) {
   omega_container = arma::mat(dat.nreg, dat.iter);
   zeta_container = arma::mat(dat.ldim, dat.iter);
   lambda_container = arma::cube(dat.basisdim, dat.ldim, dat.iter);
   phi_container = arma::field<arma::cube>(dat.iter);
-  phi0_container = arma::cube(dat.nreg, dat.nreg, dat.iter);
   eta_container = arma::cube(dat.nsub * dat.nreg, dat.ldim, dat.iter);
   sigmasqetai_container = arma::cube(dat.nsub * dat.nreg, dat.ldim, dat.iter);
   sigmasqeta_container = arma::cube(dat.nreg, dat.ldim, dat.iter);
@@ -79,7 +78,7 @@ Parameters::Parameters(Data& dat, Rcpp::Nullable<Rcpp::List> init_ = R_NilValue)
   a3 = 2;
 }
 
-void Parameters::update_omega(Data& dat, Transformations& transf) {
+void ParametersPartial::update_omega(const Data& dat, Transformations& transf) {
   double rate, shape;
   shape = .5 * dat.nt * dat.nsub;
   arma::vec eta_temp;
@@ -116,7 +115,7 @@ void Parameters::update_delta(Data& dat, Transformations& transf) {
 }
 */
 
-void Parameters::update_eta(Data& dat, Transformations& transf) {
+void ParametersPartial::update_eta(const Data& dat, Transformations& transf) {
   arma::uword idx;
   arma::mat eta_sum, eta_phi;
   eta_sum = arma::mat(dat.nreg, dat.nreg, arma::fill::zeros);
@@ -162,7 +161,7 @@ void Parameters::update_eta(Data& dat, Transformations& transf) {
   // }
 }
 
-void Parameters::update_xi_eta(Data& dat, Transformations& transf) {
+void Parameters::update_xi_eta(const Data& dat, Transformations& transf) {
   double shape, rate;
   arma::rowvec delta_eta_cumprod_init = arma::cumprod(delta_eta.row(0));
   transf.delta_eta_cumprod.col(0) = arma::cumprod(delta_eta.col(0));
@@ -184,7 +183,7 @@ void Parameters::update_xi_eta(Data& dat, Transformations& transf) {
   }
 }
 
-void Parameters::update_delta_eta(Data& dat, Transformations& transf) {
+void Parameters::update_delta_eta(const Data& dat, Transformations& transf) {
   double tmpsum, ndf, cumprod;
   arma::mat delta_eta_cumprod;
   arma::vec etavec, etavecr, betavec, betavecr, etamean;
@@ -285,18 +284,6 @@ void Parameters::update_delta_eta(Data& dat, Transformations& transf) {
   }
 }
 
-void Parameters::update_delta_eta_mh(const Data& dat, Transformations& transf) {
-  double loglik_old, loglik_new, prior_old, prior_new, logpost_new, logpost_old;
-  double offset = .5;
-  for (arma::uword l = 0; l < dat.ldim; l++) {
-    for (arma::uword r = 0; r < dat.nreg; r++) {
-      loglik_old = 0;
-      loglik_new = 0;
-      
-    }
-  }
-}
-
 void Parameters::update_beta(const Data& dat, Transformations& transf) {
   arma::uword first, last;
   arma::uvec r_ind;
@@ -329,7 +316,7 @@ void Parameters::update_delta_beta(const Data& dat, Transformations& transf) {
   }
 }
 
-void Parameters::update_lambda(const Data& dat, Transformations& transf) {
+void ParametersPartial::update_lambda(const Data& dat, Transformations& transf) {
   double psi_norm;
   arma::mat Q, eta_sum, eta_phi, diagomega;
   arma::vec b, eta_temp;
@@ -388,7 +375,7 @@ void Parameters::update_zeta(const Data& dat, Transformations& transf) {
   }
 }
 
-void Parameters::update_phi(const Data& dat, Transformations& transf) {
+void ParametersPartial::update_phi(const Data& dat, Transformations& transf) {
   double norm;
   arma::uword first, last, idx;
   arma::vec b, phi_temp;
@@ -461,66 +448,6 @@ void Parameters::update_phi(const Data& dat, Transformations& transf) {
         arma::vec(transf.fit_eta.col(l)).rows(r_ind) = -arma::vec(transf.fit_eta.col(l)).rows(r_ind);
       }
     }
-  }
-}
-
-void Parameters::update_phi0(const Data& dat, Transformations &transf) {
-  arma::vec ones_v = arma::ones(dat.ldim);
-  arma::mat C_inv;
-  double Q, b;
-  C_inv = arma::inv_sympd(transf.C_rho);
-  Q = arma::as_scalar(
-    ones_v.t() * arma::inv_sympd(transf.C_rho) * ones_v);
-  for (arma::uword r = 0; r < dat.nreg; r++) {
-    for (arma::uword rp = 0; rp < dat.nreg; rp++) {
-      
-      b = arma::as_scalar(ones_v.t() * C_inv * arma::vec(phi.tube(rp, r)));
-      phi0(rp, r) = R::rnorm(b / Q, std::pow(Q, -.5));
-      if (rp == 0) {
-        if (r == 0) {
-          Rcpp::Rcout << "phi tube: " << phi.tube(rp, r) <<"\n";
-          Rcpp::Rcout << "mean: " << b / Q <<"\n";
-          Rcpp::Rcout << "sd: " << std::pow(Q, -.5) << "\n";
-        }
-      }
-    }
-  }
-}
-
-void Parameters::update_tau_phi0(const Data& dat, Transformations &transf) {
-  
-}
-void Parameters::update_rho(const Data &dat, Transformations &transf) {
-  double offset = .025;
-  double prior_old, prior_new, logratio, new_logpost,
-    loglik_old, loglik_new, rho_oldmh, rho_newmh, rho_proposal;
-  rho_proposal = R::runif(std::max(0., rho - offset), std::min(rho + offset, 1.));
-  arma::mat C_rho_proposal = alpha * rho_proposal * transf.ones_mat + 
-                             alpha * (1 - rho_proposal) * arma::eye(dat.ldim, dat.ldim);
-  arma::mat x = arma::mat(dat.nreg * dat.nreg, dat.ldim);
-  for (arma::uword r = 0; r < dat.nreg; r++) {
-    for (arma::uword rr = 0; rr < dat.nreg; rr++) {
-      x.row(rr + r * dat.nreg) = arma::vec(phi.tube(rr, r)).t();
-    }
-  }
-  loglik_old = arma::accu(dmvnrm_arma_fast(
-    x, arma::zeros<arma::rowvec>(dat.ldim), transf.C_rho, true));
-  
-  loglik_new = arma::accu(dmvnrm_arma_fast(
-    x, arma::zeros<arma::rowvec>(dat.ldim), C_rho_proposal, true));
-  
-  prior_old = R::dbeta(rho, rho_shape1, rho_shape2, true);
-  prior_new = R::dbeta(rho_proposal, rho_shape1, rho_shape2, true);
-  old_logpost = loglik_old + prior_old;
-  new_logpost = loglik_new + prior_new;
-  rho_oldmh = old_logpost - R::dunif(rho, std::max(0., rho_proposal - offset),
-                                     std::min(rho_proposal + offset, 1.), true);
-  rho_newmh = new_logpost - R::dunif(rho_proposal, std::max(0., rho - offset),
-                                     std::min(rho + offset, 1.), true);
-  logratio = rho_newmh - rho_oldmh;
-  if (R::runif(0, 1) < exp(logratio)) {
-    rho = rho_proposal;
-    transf.C_rho = C_rho_proposal;
   }
 }
 
@@ -611,67 +538,3 @@ void Parameters::update_a123(const Data& dat, Transformations& transf) {
     a3 = a_proposal;
   }
 }
-
-void Parameters::update_alpha(const Data& dat, Transformations& transf) {
-  arma::mat C_rho_inv;
-  double shape, rate;
-  shape = .5 + .5 * dat.nreg * dat.nreg * dat.ldim;
-  rate = .5;
-  C_rho_inv = arma::inv_sympd(rho * transf.ones_mat + 
-    (1 - rho) * arma::eye(dat.ldim, dat.ldim));
-  for (arma::uword r = 0; r < dat.nreg; r++) {
-    for (arma::uword rp = 0; rp < dat.nreg; rp++) {
-      rate = rate + .5 * arma::as_scalar(arma::vec(phi.tube(rp, r)).t() * 
-        C_rho_inv * 
-        arma::vec(phi.tube(rp, r)));
-    }
-  }
-  alpha = 1. / R::rgamma(shape, 1. / (1 + rate));
-}
-void Parameters::update_a12(const Data& dat, Transformations& transf) {
-  double offset = .5;
-  double prior_old, prior_new, logratio, new_logpost,
-  loglik_old, loglik_new, a_oldmh, a_newmh, a_proposal;
-  a_proposal = R::runif(std::max(0., a1 - offset), a1 + offset);
-  loglik_new = 0;
-  loglik_old = 0;
-  for (arma::uword l = 0; l < dat.ldim; l++) {
-    loglik_new = loglik_new + R::dgamma(delta_eta.row(0)(l), a_proposal, 1, true);
-    loglik_old = loglik_old + R::dgamma(delta_eta.row(0)(l), a1, 1, true);
-  }
-  prior_new = R::dgamma(a_proposal, 2, 1, true);
-  prior_old = R::dgamma(a1, 2, 1, true);
-  new_logpost = loglik_new + prior_new;
-  old_logpost = loglik_old + prior_old;
-  a_newmh = new_logpost - R::dunif(a_proposal, std::max(0., a1 - offset),
-                                   a1 + offset, 1);
-  a_oldmh = old_logpost - R::dunif(a1, std::max(0., a_proposal - offset), 
-                                   a_proposal + offset, 1);
-  logratio = a_newmh - a_oldmh;
-  if (R::runif(0, 1) < exp(logratio)) {
-    a1 = a_proposal;
-  }
-  
-  ////////
-  loglik_new = 0; loglik_old = 0;
-  a_proposal = R::runif(std::max(0., a2 - offset), a2 + offset);
-  for (arma::uword l = 1; l < dat.ldim; l++) {
-    for (arma::uword r = 0; r < dat.nreg; r++) {
-      loglik_new = loglik_new + R::dgamma(delta_eta(r, l), a_proposal, 1, true);
-      loglik_old = loglik_old + R::dgamma(delta_eta(r, l), a2, 1, true);
-    }
-  }
-  prior_new = R::dgamma(a_proposal, 2, 1, true);
-  prior_old = R::dgamma(a2, 2, 1, true);
-  new_logpost = loglik_new + prior_new;
-  old_logpost = loglik_old + prior_old;
-  a_newmh = new_logpost - R::dunif(a_proposal, std::max(0., a2 - offset),
-                                   a2 + offset, true);
-  a_oldmh = old_logpost - R::dunif(a2, std::max(0., a_proposal - offset), 
-                                   a_proposal + offset, true);
-  logratio = a_newmh - a_oldmh;
-  if (R::runif(0, 1) < exp(logratio)) {
-    a2 = a_proposal;
-  }
-}
-

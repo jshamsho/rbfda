@@ -97,7 +97,7 @@ B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
 matplot(tt, B, xlab = "time", ylab = "spline", type = "l")
 init_mcmc <- initialize_mcmc(Y, tt, nt, B, X, ldim = 4)
-microbenchmark::microbenchmark(result <- run_mcmc(Y, X, B, tt, penalty, init_mcmc$npc, 5000, 1000, 1, init_mcmc), times = 1)
+result <- run_mcmc(Y, X, B, tt, penalty, init_mcmc$npc, 5000, 1000, 1, init_mcmc)
 
 gamma1 <- function(a, b) {
   gamma((b + 1) / 2) * gamma(a / 2) / (sqrt(pi) * gamma((a + b) / 2))

@@ -7,7 +7,8 @@
 
 class Transformations;
 
-class Parameters {
+class Parameters
+{
   public:
     // psi: Loading matrix for functional domain
     // phi: Loading matrix for region domain
@@ -41,36 +42,48 @@ class Parameters {
       sigmasqeta_container, xi_eta_container, beta_container, delta_beta_container,
       delta_eta_container, phi0_container, tau_phi0_container, delta_lambda_container, 
       xi_phi, delta_phi_container;
-    arma::field<arma::cube> phi_container, xi_phi_container;
+    arma::field<arma::cube> xi_phi_container;
+    arma::field<arma::cube> phi_container;
     
     // omega_container = arma::mat(dat.nreg, dat.iter);
     // zeta_container = arma::mat(dat.ldim, dat.iter);
     // delta_eta_container = arma::mat(dat.nreg, dat.ldim, dat.iter);
     double prior_shape = 0;
-    Parameters(Data&, Rcpp::Nullable<Rcpp::List>);
+    Parameters(const Data&, Rcpp::Nullable<Rcpp::List>);
     Parameters() {};
-    void update_omega(Data&, Transformations&);
-    void update_delta(Data&, Transformations&);
-    void update_eta(Data&, Transformations&);
-    void update_xi_eta(Data&, Transformations&);
-    void update_delta_eta(Data&, Transformations&);
-    void update_delta_eta_mh(const Data&, Transformations&);
+    virtual void update_lambda(const Data&, Transformations&) = 0;
+    virtual void update_phi(const Data&, Transformations&) = 0;
+    virtual void update_eta(const Data&, Transformations&) = 0;
+    virtual void update_omega(const Data&, Transformations&) = 0;
+    
+    void update_delta(const Data&, Transformations&);
+    void update_xi_eta(const Data&, Transformations&);
+    void update_delta_eta(const Data&, Transformations&);
     void update_beta(const Data&, Transformations&);
     void update_delta_beta(const Data&, Transformations&);
-    void update_lambda(const Data&, Transformations&);
     void update_zeta(const Data&, Transformations&);
-    void update_phi(const Data&, Transformations&);
-    void update_phi0(const Data&, Transformations&);
-    void update_rho(const Data&, Transformations&);
     void update_nu(const Data&, Transformations);
-    void update_tau_phi0(const Data&, Transformations&);
-    void update_a12(const Data&, Transformations&);
     void update_a123(const Data&, Transformations&);
-    void update_alpha(const Data&, Transformations&);
-    void update_delta_lambda(const Data&, Transformations&);
-    void update_xi_lambda(const Data&, Transformations&);
-    void update_delta_phi(const Data&, Transformations&);
-    void update_xi_phi(const Data&, Transformations&);
-    
+    ~Parameters(){}
+};
+
+class ParametersPartial : public Parameters
+{
+public:
+  ParametersPartial(const Data& dat, Rcpp::Nullable<Rcpp::List> init_);
+  void update_eta(const Data&, Transformations&);
+  void update_lambda(const Data&, Transformations&);
+  void update_phi(const Data&, Transformations&);
+  void update_omega(const Data&, Transformations&);
+  ~ParametersPartial() {}
+};
+
+class ParametersFactory {
+public:
+  static Parameters *new_pars(std::string covstruct, Data& dat, Rcpp::Nullable<Rcpp::List> init_) {
+    if(covstruct == "partial") return new ParametersPartial(dat, init_);
+    // if(type == "unequal") return new SamplerUnequal(dat, pars, transf);
+    return nullptr;
+  }
 };
 #endif
