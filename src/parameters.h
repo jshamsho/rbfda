@@ -78,10 +78,22 @@ public:
   ~ParametersPartial() {}
 };
 
+class ParametersWeak : public Parameters
+{
+public:
+  ParametersWeak(const Data& dat, Rcpp::Nullable<Rcpp::List> init_);
+  void update_eta(const Data&, Transformations&);
+  void update_lambda(const Data&, Transformations&);
+  void update_phi(const Data&, Transformations&);
+  void update_omega(const Data&, Transformations&);
+  ~ParametersWeak() {}
+};
+
 class ParametersFactory {
 public:
   static Parameters *new_pars(std::string covstruct, Data& dat, Rcpp::Nullable<Rcpp::List> init_) {
     if(covstruct == "partial") return new ParametersPartial(dat, init_);
+    if(covstruct == "weak") return new ParametersWeak(dat, init_);
     // if(type == "unequal") return new SamplerUnequal(dat, pars, transf);
     return nullptr;
   }

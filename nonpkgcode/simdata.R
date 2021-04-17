@@ -3,7 +3,7 @@ source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/initialize_m
 nt <- 60
 tt <- seq(from = 0, to = 1, length.out = nt)
 nreg <- 4
-nsub <- 200
+nsub <- 100
 ndf <- 15
 d <- 2
 ldim <- 4
@@ -39,20 +39,6 @@ for (l in 1:ldim) {
   # phi[,,l] <- matrix(rnorm(nreg * nreg), nreg, nreg)
   # phi[,,l] <- Re(eigen(phi[,,l])$vectors)
 }
-# phi[,,3] <- pracma::randortho(nreg)
-# scale <- init_mcmc$alpha
-# rho <- .01
-# C_rho <- scale * rho * rep(1, ldim) %*% t(rep(1, ldim)) + scale * (1 - rho) * diag(ldim)
-# phi_mat <- matrix(0, nrow = nreg^2, ldim)
-# log_phi <- 0
-# for (r in 1:nreg) {
-#   for (rp in 1:nreg) {
-#     # x <- phi[r, rp, ]
-#     x <- phi[rp, r,]
-#     phi_mat[(r - 1) * nreg + rp, ] <- x
-#     log_phi <- log_phi + mvtnorm::dmvnorm(x, rep(0, ldim), sigma = C_rho, log = TRUE)
-#   }
-# }
 # sum(mvtnorm::dmvnorm(phi_mat, rep(0, ldim), sigma = C_rho, log = TRUE))
 # cov(phi_mat)
 # cor(phi_mat)
@@ -71,6 +57,17 @@ for (i in 1:nsub) {
   }
   Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + c(rnorm(nt * nreg, sd = .1))
 }
+
+etalong <- reshape_nreg(eta, nsub, nreg)
+theta1 <- matrix(0, nrow = nsub, ncol = nreg * ldim)
+for (i in 1:nsub) {
+  for (j in 1:nreg) {
+    idx1 <- (j - 1) * ldim + 1
+    idx2 <- j * ldim
+    theta1[i, idx1:idx2] <- phi[,,j] %*% etalong[i, idx1:idx2]
+  }
+}
+cov(theta1)[1:5,1:5]
 # 
 # eigenfunc <- matrix(0, 60, 1000)
 # var11 <- numeric(1000)
@@ -96,7 +93,8 @@ basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2), data.frame(tt), ab
 B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
 matplot(tt, B, xlab = "time", ylab = "spline", type = "l")
-init_mcmc <- initialize_mcmc(Y, tt, nt, B, X, ldim = 4)
+init_mcmc <- initialize_mcmc_partial(Y, tt, nt, B, X, ldim = 4)
+init_mcmc <- initialize_mcmc_weak(Y, tt, nt, B, X)
 result <- run_mcmc(Y, X, B, tt, penalty, init_mcmc$npc, 5000, 1000, 1, init_mcmc)
 
 gamma1 <- function(a, b) {
@@ -115,6 +113,92 @@ get_pval <- function(eta, nreg, iter) {
   return(1 - pnorm(teststat))
 }
 
+rn <- function(n, p) {
+  r <- sqrt(-log(1 - p / n))
+  return(r)
+}
+
+myfunc <- function(eta, phi, nreg) {
+  nsub <- nrow(eta) / nreg
+  ldim <- ncol(eta)
+  eta <- reshape_nreg(eta, nsub, nreg)
+  p <- nreg * ldim
+  mu <- -rx(nsub, p)^2 * (p - nsub + .5)
+  for (i in 1:nreg) {
+    mu <- mu + rx(nsub, nreg)^2 * (nreg - nsub + .5)
+  }
+  sigsq <- 2 * rx(nsub, p)^2
+  for (i in 1:nreg) {
+    sigsq <- sigsq - 2 * rx(nsub, nreg)^2
+  }
+  theta1 <- matrix(0, nrow = nsub, ncol = nreg * ldim)
+  for (i in 1:nsub) {
+    for (j in 1:nreg) {
+      idx1 <- (j - 1) * ldim + 1
+      idx2 <- j * ldim
+      theta1[i, idx1:idx2] <- phi[,,j] %*% eta[i, idx1:idx2]
+    }
+  }
+  return(theta1)
+  covtheta <- cov(theta1)
+  teststat <- log(det(covtheta))
+  for (i in 1:nreg) {
+    idx1 <- (j - 1) * ldim + 1
+    idx2 <- j * ldim
+    teststat <- teststat - log(det(covtheta[idx1:idx2, idx1:idx2]))
+  }
+  rho <- 1 - (2 * (p^3 - ldim * nreg^3) + 9 * (p^2  - ldim * nreg^2)) /
+    (6 * (nsub + 1) * (p^2 - ldim * nreg^2))
+  f <- .5 * (p^2 - ldim * nreg^2)
+  loglambda <- (nsub + 1) / 2 * teststat
+  print(paste0("f = ", f, " rho = ", rho, " loglambda = ", loglambda))
+  print(paste0("chisq teststat = ", -2 * rho * loglambda))
+  print(paste0("pval = ", pchisq(-2 * rho * loglambda, df = f, lower.tail = FALSE)))
+  # return((teststat - mu) / sqrt(sigsq))
+}
+
+chisqversion <- function(x, nreg, ldim) {
+  covx <- cov(x)
+  n <- nrow(x)
+  p <- ncol(x)
+  loglambda <- log(det(covx))
+  for (j in 1:ldim) {
+    idx1 <- (j - 1) * nreg + 1
+    idx2 <- j * nreg
+    loglambda <- loglambda - log(det(covx[idx1:idx2, idx1:idx2]))
+  }
+  loglambda <- (n + 1) / 2 * loglambda
+  print(paste0("loglambda = ", loglambda))
+  rho <- 1 - (2 * (p^3 - ldim * nreg^3) + 9 * (p^2  - ldim * nreg^2)) /
+    (6 * (nsub + 1) * (p^2 - ldim * nreg^2))
+  f <- .5 * (p^2 - ldim * nreg^2)
+  print(paste0("df = ", f))
+  print(paste0("teststat = ", -2 * rho * loglambda))
+  return(pchisq(-2 * rho * loglambda, df = f, lower.tail = FALSE))
+}
+
+normalversion <- function(x, nreg, ldim) {
+  covx <- cov(x)
+  p <- nreg * ldim
+  n <- nrow(x)
+  mu <- -rx(n, p)^2 * (p - n + .5) + ldim * rx(n, nreg)^2 * (nreg - n + .5)
+  sigsq <- 2 * rx(n, p)^2 - 2 * ldim * rx(n, nreg)^2
+  loglambda <- log(det(covx))
+  for (j in 1:ldim) {
+    idx1 <- (j - 1) * nreg + 1
+    idx2 <- j * nreg
+    print(idx1:idx2)
+    loglambda <- loglambda - log(det(covx[idx1:idx2, idx1:idx2]))
+  }
+  q <- (loglambda - mu) / sqrt(sigsq)
+  return(pnorm(q, lower.tail = TRUE))
+}
+theta1 <- myfunc(result$samples$eta[,,3000], result$samples$phi[[3000]], nreg)
+chisqversion(theta1, nreg, ldim)
+normalversion(theta1, nreg, ldim)
+
+x <- matrix(rnorm(100 * 24), 100, 24)
+normalversion(x, 6, 4)
 get_pval(result$samples$eta, nreg, 4000)
 modadeq <- postcheck(result, refdist_samples = 10000)
 plot(density(modadeq$test_stat), type = "l")
@@ -154,7 +238,7 @@ for (l in 1:ldim) {
 }
 
 cov(eta_mat)
-efunc <- 3
+efunc <- 1
 plot(B %*% result$samples$lambda[,efunc,100], type = "l")
 evec <- numeric(500)
 for (i in 1:1000) {

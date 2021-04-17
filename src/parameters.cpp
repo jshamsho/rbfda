@@ -12,8 +12,6 @@ ParametersPartial::ParametersPartial(const Data& dat, Rcpp::Nullable<Rcpp::List>
   beta_container = arma::cube(dat.designdim * dat.nreg, dat.ldim, dat.iter);
   delta_beta_container = arma::cube(dat.nreg * dat.designdim, dat.ldim, dat.iter);
   delta_eta_container = arma::cube(dat.nreg, dat.ldim, dat.iter);
-  tau_phi0_container = arma::cube(dat.nreg, dat.nreg, dat.iter);
-  rho_container = arma::vec(dat.iter);
   a1_container = arma::vec(dat.iter);
   a2_container = arma::vec(dat.iter);
   a3_container = arma::vec(dat.iter);
@@ -68,14 +66,31 @@ ParametersPartial::ParametersPartial(const Data& dat, Rcpp::Nullable<Rcpp::List>
   xi_eta = arma::mat(dat.nsub * dat.nreg, dat.ldim, arma::fill::ones);
   delta_beta = arma::mat(dat.nreg * dat.designdim, dat.ldim, arma::fill::ones);
   nu = 60;
-  phi0 = arma::mat(dat.nreg, dat.nreg);
-  for (arma::uword r = 0; r < dat.nreg; r++) {
-    phi0.col(r) = arma::vec(arma::mean(phi.col(r), 2));
-  }
-  tau_phi0 = arma::mat(dat.nreg, dat.nreg, arma::fill::ones);
   a1 = 2;
   a2 = 2;
   a3 = 2;
+}
+
+ParametersWeak::ParametersWeak(const Data& dat, Rcpp::Nullable<Rcpp::List> init_ = R_NilValue) {
+  a1 = 2;
+  a2 = 2;
+  a3 = 2;
+}
+
+void ParametersWeak::update_eta(const Data& dat, Transformations& transf) {
+  
+}
+
+void ParametersWeak::update_lambda(const Data& dat, Transformations& transf) {
+  
+}
+
+void ParametersWeak::update_omega(const Data& dat, Transformations& transf) {
+  
+}
+
+void ParametersWeak::update_phi(const Data& dat, Transformations& transf) {
+  
 }
 
 void ParametersPartial::update_omega(const Data& dat, Transformations& transf) {
@@ -410,7 +425,6 @@ void ParametersPartial::update_phi(const Data& dat, Transformations& transf) {
       }
       eta_sum = eta_sum + diageta * diageta;
     }
-    // b = b + arma::vectorise(arma::reshape(phi0.col(r), dat.nreg, dat.ldim) * C_inv);
     b = tmpad - tmprm;
     Q = arma::kron(eta_sum, diagomega) +
       arma::kron(C_inv, diag_r);
