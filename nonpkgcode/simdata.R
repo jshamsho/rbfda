@@ -49,17 +49,8 @@ for (l in 1:ldim) {
 #   rate <- rate + phi_mat[i,] %*% c_inv %*% phi_mat[i,]
 # }
 # 1 / rgamma(10, shape = .5 + .5 * nreg * nreg * 4, rate = .5 + .5 * rate)
-Y <- matrix(0, nsub * nt, ncol = nreg)
-for (i in 1:nsub) {
-  for (l in 1:ldim) {
-    Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + 
-      c(eigenfuncs[,l] %*% t(eta[((i - 1) * nreg + 1):(i * nreg), l]) %*% t(phi[,,l])) 
-  }
-  Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + c(rnorm(nt * nreg, sd = .1))
-}
-
-etalong <- reshape_nreg(eta, nsub, nreg)
 theta1 <- matrix(0, nrow = nsub, ncol = nreg * ldim)
+etalong <- reshape_nreg(eta, nsub, nreg)
 for (i in 1:nsub) {
   for (j in 1:nreg) {
     idx1 <- (j - 1) * ldim + 1
@@ -67,7 +58,66 @@ for (i in 1:nsub) {
     theta1[i, idx1:idx2] <- phi[,,j] %*% etalong[i, idx1:idx2]
   }
 }
-cov(theta1)[1:5,1:5]
+Y <- matrix(0, nsub * nt, ncol = nreg)
+for (i in 1:nsub) {
+  for (l in 1:ldim) {
+    Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + 
+      eigenfuncs[,l] %*% t(eta[((i - 1) * nreg + 1):(i * nreg), l]) %*% t(phi[,,l])
+  }
+  Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + c(rnorm(nt * nreg, sd = .1))
+}
+
+rho <- .9
+cov_rho <- rho * rep(1, nreg * ldim) %*% t(rep(1, nreg * ldim)) + 
+  (1 - rho) * diag(nreg * ldim)
+theta1 <- MASS::mvrnorm(nsub, mu = rep(0, nrow(cov_rho)), Sigma = cov_rho)
+Y <- matrix(0, nsub * nt, ncol = nreg)
+for (i in 1:nsub) {
+  for (l in 1:ldim) {
+    idx1 <- (l - 1) * nreg + 1
+    idx2 <- l * nreg
+    Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + 
+      eigenfuncs[, l] %*% t(theta1[i, idx1:idx2])
+  }
+  Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + c(rnorm(nt * nreg, sd = .1))
+}
+
+rho1 <- .5
+rho2 <- .2
+cov_rho <- matrix(0, nreg * ldim, nreg * ldim)
+for (i in 1:ldim) {
+  idx1 <- (i - 1) * nreg + 1
+  idx2 <- i * nreg
+  cov_rho[idx1:idx2, idx1:idx2] <- 3 * (ldim - i + 1) * (rho1 * rep(1, nreg) %*% 
+    t(rep(1, nreg)) + 
+    (1 - rho1) * diag(nreg))
+}
+matrows <- 1:(ldim * nreg)
+for (i in 1:(ldim - 1)) {
+  matrows <- matrows[-(1:nreg)]
+  matcols <- ((i - 1) * nreg + 1):(i * nreg)
+  for (j in matrows) {
+    for (jp in matcols) {
+      cov_rho[j, jp] <- rho2 * sqrt(cov_rho[j, j]) * sqrt(cov_rho[jp, jp])
+      cov_rho[jp, j] <- cov_rho[j, jp]
+    }
+  }
+  # for (j in matrows) {
+    # cov_rho[j, i] <- rho2 * sqrt(cov_rho[])
+  # }
+}
+cov_rho
+theta1 <- MASS::mvrnorm(nsub, mu = rep(0, nrow(cov_rho)), Sigma = cov_rho)
+Y <- matrix(0, nsub * nt, ncol = nreg)
+for (i in 1:nsub) {
+  for (l in 1:ldim) {
+    idx1 <- (l - 1) * nreg + 1
+    idx2 <- l * nreg
+    Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + 
+      eigenfuncs[, l] %*% t(theta1[i, idx1:idx2])
+  }
+  Y[((i - 1) * nt + 1):((i) * nt), ] <- Y[((i - 1) * nt + 1):((i) * nt), ] + c(rnorm(nt * nreg, sd = .1))
+}
 # 
 # eigenfunc <- matrix(0, 60, 1000)
 # var11 <- numeric(1000)
@@ -92,10 +142,10 @@ X <- cbind(rep(1, nsub), matrix(rnorm(nsub * (d - 1)), nrow = nsub, ncol = d - 1
 basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2), data.frame(tt), absorb.cons = FALSE)
 B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
-matplot(tt, B, xlab = "time", ylab = "spline", type = "l")
+# matplot(tt, B, xlab = "time", ylab = "spline", type = "l")
 init_mcmc <- initialize_mcmc_partial(Y, tt, nt, B, X, ldim = 4)
-init_mcmc <- initialize_mcmc_weak(Y, tt, nt, B, X)
-result <- run_mcmc(Y, X, B, tt, penalty, init_mcmc$npc, 5000, 1000, 1, init_mcmc)
+# init_mcmc <- initialize_mcmc_weak(Y, tt, nt, B, X)
+result <- run_mcmc(Y, X, B, tt, penalty, init_mcmc$npc, 5000, 1000, 10, init_mcmc)
 
 gamma1 <- function(a, b) {
   gamma((b + 1) / 2) * gamma(a / 2) / (sqrt(pi) * gamma((a + b) / 2))
@@ -118,7 +168,7 @@ rn <- function(n, p) {
   return(r)
 }
 
-myfunc <- function(eta, phi, nreg) {
+get_theta <- function(eta, phi, nreg) {
   nsub <- nrow(eta) / nreg
   ldim <- ncol(eta)
   eta <- reshape_nreg(eta, nsub, nreg)
@@ -140,21 +190,6 @@ myfunc <- function(eta, phi, nreg) {
     }
   }
   return(theta1)
-  covtheta <- cov(theta1)
-  teststat <- log(det(covtheta))
-  for (i in 1:nreg) {
-    idx1 <- (j - 1) * ldim + 1
-    idx2 <- j * ldim
-    teststat <- teststat - log(det(covtheta[idx1:idx2, idx1:idx2]))
-  }
-  rho <- 1 - (2 * (p^3 - ldim * nreg^3) + 9 * (p^2  - ldim * nreg^2)) /
-    (6 * (nsub + 1) * (p^2 - ldim * nreg^2))
-  f <- .5 * (p^2 - ldim * nreg^2)
-  loglambda <- (nsub + 1) / 2 * teststat
-  print(paste0("f = ", f, " rho = ", rho, " loglambda = ", loglambda))
-  print(paste0("chisq teststat = ", -2 * rho * loglambda))
-  print(paste0("pval = ", pchisq(-2 * rho * loglambda, df = f, lower.tail = FALSE)))
-  # return((teststat - mu) / sqrt(sigsq))
 }
 
 chisqversion <- function(x, nreg, ldim) {
@@ -187,28 +222,21 @@ normalversion <- function(x, nreg, ldim) {
   for (j in 1:ldim) {
     idx1 <- (j - 1) * nreg + 1
     idx2 <- j * nreg
-    print(idx1:idx2)
     loglambda <- loglambda - log(det(covx[idx1:idx2, idx1:idx2]))
   }
   q <- (loglambda - mu) / sqrt(sigsq)
   return(pnorm(q, lower.tail = TRUE))
 }
-theta1 <- myfunc(result$samples$eta[,,3000], result$samples$phi[[3000]], nreg)
-chisqversion(theta1, nreg, ldim)
-normalversion(theta1, nreg, ldim)
+iter <- 2000
+theta2 <- get_theta(result$samples$eta[,,iter], result$samples$phi[[iter]], nreg)
+theta2 <- get_theta(eta, phi, nreg)
 
-x <- matrix(rnorm(100 * 24), 100, 24)
-normalversion(x, 6, 4)
-get_pval(result$samples$eta, nreg, 4000)
-modadeq <- postcheck(result, refdist_samples = 10000)
-plot(density(modadeq$test_stat), type = "l")
-lines(density(modadeq$null_test_stat), col = "blue")
-eta1 <- reshape_nreg(result$samples$eta[,,5000], nsub, nreg)
-cor(eta1)
-sum(testmat[,2] > testmat[,1]) / (result$control$iterations - result$control$burnin)
-plot(testmat[,1], testmat[,2], xlab = "S_n", ylab = "tilde_S_n")
-abline(a = 0, b = 1)
-plot(testmat[,1], type = "l")
+chisqversion(theta2, nreg, ldim)
+normalversion(theta2, nreg, ldim)
+pvals <- sapply(501:5000, function(iter) {theta2 <- get_theta(result$samples$eta[,,iter], result$samples$phi[[iter]], nreg);
+                normalversion(theta2, nreg, ldim)}
+)
+hist(pvals)
 
 scale <- init_mcmc$alpha
 rho <- .1
@@ -238,10 +266,10 @@ for (l in 1:ldim) {
 }
 
 cov(eta_mat)
-efunc <- 1
+efunc <- 2
 plot(B %*% result$samples$lambda[,efunc,100], type = "l")
 evec <- numeric(500)
-for (i in 1:1000) {
+for (i in 1:5000) {
   lines(B %*% result$samples$lambda[,efunc,i])
   evec[i] <- (B %*% result$samples$lambda[,efunc,i])[30]
 }
@@ -250,11 +278,11 @@ lines(B %*% init_mcmc$lambda[,efunc], col = "green")
 lines(B %*% apply(result$samples$lambda[,efunc,],1,mean), col = "blue")
 sum((B %*% init_mcmc$lambda[,efunc] - eigenfuncs[,efunc])^2)
 sum((B %*% apply(result$samples$lambda[,efunc,], 1, median) - eigenfuncs[,efunc])^2)
-r <- 2
+r <- 3
 i <- 2
 plot(Y[((i - 1) * nt + 1):(i * nt),r])
 seqr <- ((i - 1) * nreg + 1):(i * nreg)
-for (i in 201:1000) {
+for (i in 201:5000) {
   tmpsum <- numeric(nt)
   for (l in 1:init_mcmc$npc) {
     tmpsum <- tmpsum + B %*% result$samples$lambda[,l, i] %*% t(result$samples$phi[[i]][r,,l]) %*% result$samples$eta[seqr, l, i]
@@ -263,9 +291,9 @@ for (i in 201:1000) {
 }
 hist(result$samples$rho)
 
-iter <- 1000
+iter <- 1000 
 l <- 4
-r <- 6
+r <- 3
 seqr <- seq(from = r, to = nsub * nreg, by = nreg)
 xb <- X %*% result$samples$beta[((r - 1) * d + 1):(r * d), l, iter]
 # sum(dgamma(result$samples$xi_eta[,,500], 1, rate = 1, log = TRUE))

@@ -1,4 +1,193 @@
 library(refund)
+library(magrittr)
+new_partial_class <- function(Y, tt, B, X) {
+  nsub <- nrow(Y) / nt
+  nreg <- ncol(Y)
+  nr <- nsub * nreg
+  omega <- numeric(nreg)
+  npc <- NULL
+  mu1 <- NULL
+  mu2 <- NULL
+  psi <- NULL
+  phi_cube <- NULL
+  phi_mat <- NULL
+  lambda <- NULL
+  eta <- NULL
+  prec_eta <- NULL
+  beta <- NULL
+  delta_eta <- NULL
+  Y.trans <- matrix(0, nrow = nt, ncol = nr)
+  Y.trans.smoothed <- matrix(0, nrow = nt, ncol = nr)
+  Y.trans.smoothed.centered <- matrix(0, nrow = nt, ncol = nr)
+  members <- list(Y = Y, Y.trans = Y.trans, Y.trans.smoothed = Y.trans.smoothed,
+                  Y.trans.smoothed.centered = Y.trans.smoothed.centered,
+                  tt = tt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
+                  omega = omega, mu1 = mu1, mu2 = mu2, psi = psi,
+                  phi_cube = phi_cube, phi_mat = phi_mat, lambda = lambda,
+                  eta = eta, prec_eta = prec_eta, beta = beta,
+                  delta_eta = delta_eta)
+  return(structure(members, class = "partial_class"))
+}
+
+run_fpca <- function(partial_class, pve = .99, ldim = NULL) {
+  for (v in 1:length(partial_class)) assign(names(partial_class)[v],
+                                            partial_class[[v]])
+  for (i in 1:nsub) {
+    Y.trans[, ((i - 1) * nreg + 1):(i * nreg)] <- Y[((i - 1) * nt + 1):(i * nt),]
+  }
+  if (is.null(ldim)) {
+    fpca1 <- refund::fpca.face(t(Yt), center = TRUE,
+                               pve = pve, knots = floor(length(tt) * 0.2))
+  } else {
+    fpca1 <- refund::fpca.face(t(Yt), center = TRUE, floor(length(tt) * 0.2),
+                               npc = ldim)
+  }
+  npc <- fpca1$npc
+  for (i in 1:(nsub * nreg)) {
+    Y.trans.smoothed[, i] <- fpca1$mu + fpca1$efunctions[,1:npc] %*%
+      fpca1$scores[i,1:npc]
+    Y.trans.smoothed.centered[,i] <- Yt[, i] - fpca1$mu
+  }
+  members <- list(Y = Y, Y.trans = Y.trans, Y.trans.smoothed = Y.trans.smoothed,
+                  Y.trans.smoothed.centered = Y.trans.smoothed.centered,
+                  tt = tt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
+                  omega = omega, mu1 = mu1, mu2 = mu2, psi = psi,
+                  phi_cube = phi_cube, phi_mat = phi_mat, lambda = lambda,
+                  eta = eta, prec_eta = prec_eta, beta = beta,
+                  delta_eta = delta_eta)
+  return(structure(members, class = "partial_class"))
+}
+
+estimate_residual_error <- function(partial_class) {
+  for (v in 1:length(partial_class)) assign(names(partial_class)[v],
+                                            partial_class[[v]])
+  Y.smoothed <- Y
+  for (r in 1:nreg) {
+    r_ind <- seq(from = r, length.out = nsub, by = nreg)
+    for (i in 1:nsub) {
+      Y.smoothed[, r] <- c(Y.trans.smoothed[, r_ind])
+    }
+    omega[r] <- 1 / var(Y[,r] - Yss[,r], na.rm = TRUE)
+  }
+  members <- list(Y = Y, Y.trans = Y.trans, Y.trans.smoothed = Y.trans.smoothed,
+                  Y.trans.smoothed.centered = Y.trans.smoothed.centered,
+                  tt = tt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
+                  omega = omega, mu1 = mu1, mu2 = mu2, psi = psi,
+                  phi_cube = phi_cube, phi_mat = phi_mat, lambda = lambda,
+                  eta = eta, prec_eta = prec_eta, beta = beta,
+                  delta_eta = delta_eta)
+  return(structure(members, class = "partial_class"))
+}
+
+set_size_param <- function(partial_class) {
+  for (v in 1:length(partial_class)) assign(names(partial_class)[v],
+                                            partial_class[[v]])
+  psi <- matrix(0, nt, npc)
+  phi_cube <- array(0, dim = c(nreg, nreg, npc))
+  phi_mat <- matrix(0, nreg * npc, nreg)
+  lambda <- matrix(0, nrow = ncol(B), npc)
+  eta <- matrix(0, nrow = nsub * nreg, ncol = npc)
+  beta <- matrix(0, nreg * ncol(X), npc)
+  prec_eta <- matrix(0, nreg, npc)
+  members <- list(Y = Y, Y.trans = Y.trans, Y.trans.smoothed = Y.trans.smoothed,
+                  Y.trans.smoothed.centered = Y.trans.smoothed.centered,
+                  tt = tt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
+                  omega = omega, mu1 = mu1, mu2 = mu2, psi = psi,
+                  phi_cube = phi_cube, phi_mat = phi_mat, lambda = lambda,
+                  eta = eta, prec_eta = prec_eta, beta = beta,
+                  delta_eta = delta_eta)
+  return(structure(members, class = "partial_class"))
+}
+
+set_param <- function(partial_class) {
+  for (v in 1:length(partial_class)) assign(names(partial_class)[v],
+                                            partial_class[[v]])
+  pcomp1 <- prcomp(t(Y.trans.smoothed))
+  mu1 <- solve(t(pcomp1$rotation[,1:npc]) %*% 
+                 pcomp1$rotation[,1:npc],
+               t(pcomp1$rotation[,1:npc]) %*% pcomp1$center)
+  for (l in 1:npc) {
+    psi[,l] <- pcomp1$rotation[, l]
+    lambda[,l] <- solve(t(B) %*% B, t(B) %*% psi[,l])
+    rxi <- t(matrix(pcomp1$x[,l], nrow = nreg))
+    pcomp2 <- princomp(rxi)
+    phi_cube[,,l] <- pcomp2$loadings[, 1:nreg]
+    # if (l > 1) {
+    #   for (r in 1:nreg) {
+    #     if (sum((phi1[, r, l] + phi1[, r, 1])^2) < sum((phi1[, r, l] - phi1[, r, 1])^2)) {
+    #       phi_cube[, r, l] <- -phi1[, r, l]
+    #     }
+    #   }
+    # }
+    for (r in 1:nreg) {
+      phi_mat[((l - 1) * nreg + 1):(l * nreg),] <- phi_cube[,,l]
+    }
+    mu2 <- solve(pcomp2$loadings[, 1:nreg], pcomp2$center)
+    for (i in 1:nsub) {
+      eta[((i - 1) * nreg + 1):(i * nreg), l] <- pcomp2$scores[i, ] + mu2 + mu1[l]
+    } 
+  }
+  
+  # phi_mat <- matrix(0, nrow = nreg * nreg, ncol = npc)
+  # for (r in 1:nreg) {
+  #   for (rp in 1:nreg) {
+  #     phi_mat[(r - 1) * nreg + rp, ] <- phi1[rp,r,]
+  #   }
+  # }
+  
+  d <- ncol(X)
+  
+  for (l in 1:npc) {
+    for (r in 1:nreg) {
+      seqr <- seq(from = r, to = nreg * nsub, by = nreg)
+      beta[((r - 1) * d + 1):(r * d), l] <- 
+        solve(t(X) %*% X, t(X) %*% eta[seqr, l])
+      prec_eta[r, l] <- 1 / var(eta[seqr, l])
+    }
+  }
+  
+  delta_eta <- matrix(1, nreg, npc)
+  delta_eta[1, 1] <- prec_eta[1,1]
+  for (l in 2:npc) {
+    delta_eta[1, l] <- prec_eta[1, l] / cumprod(delta_eta[1,])[l - 1]
+  }
+  for (r in 2:nreg) {
+    delta_eta[r, 1] <- prec_eta[r, 1] / cumprod(delta_eta[,1])[r - 1]
+  }
+  for (r in 2:nreg) {
+    for (l in 2:npc) {
+      delta_eta[r, l] <- prec_eta[r, l] / (cumprod(delta_eta[,l])[r - 1] * 
+                                            cumprod(delta_eta[1,])[l - 1])
+    }
+  }
+  
+  members <- list(Y = Y, Y.trans = Y.trans, Y.trans.smoothed = Y.trans.smoothed,
+                  Y.trans.smoothed.centered = Y.trans.smoothed.centered,
+                  tt = tt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
+                  omega = omega, mu1 = mu1, mu2 = mu2, psi = psi,
+                  phi_cube = phi_cube, phi_mat = phi_mat, lambda = lambda,
+                  eta = eta, prec_eta = prec_eta, beta = beta,
+                  delta_eta = delta_eta)
+  return(structure(members, class = "partial_class"))
+}
+
+initialize_mcmc_partial <- function(Y, tt, B = NULL, X = NULL, ldim = NULL) {
+  if (is.null(B)) {
+    B <- mgcv::smoothCon(s(tt, k = ceiling(length(tt) * 0.2), bs = "ps", m = 2),
+                         data.frame(tt), absorb.cons = FALSE)[[1]]$X
+  }
+  if (is.null(X)) {
+    X <- matrix(1, nrow = nsub, ncol = 1)
+  }
+  partial_mcmc_init <- new_partial_class(Y, tt, B, X) %>%
+    run_fpca %>%
+    estimate_residual_error %>%
+    set_size_param %>% 
+    set_param
+  return(partial_mcmc_init)
+}
+A <- initialize_mcmc_partial(Y, tt, B, X)
+
 initialize_mcmc_partial <- function(Y, tt, nt, B, X, pve = .99, ldim = NULL) {
   nsub <- nrow(Y) / nt
   nreg <- ncol(Y)
@@ -64,7 +253,7 @@ initialize_mcmc_partial <- function(Y, tt, nt, B, X, pve = .99, ldim = NULL) {
     }
   }
   beta <- matrix(0, nreg * ncol(X), fpca1$npc)
-  preceta <- matrix(0, nreg, fpca1$npc)
+  prec_eta <- matrix(0, nreg, fpca1$npc)
   d <- ncol(X)
   
   for (l in 1:fpca1$npc) {
@@ -72,13 +261,11 @@ initialize_mcmc_partial <- function(Y, tt, nt, B, X, pve = .99, ldim = NULL) {
       seqr <- seq(from = r, to = nreg * nsub, by = nreg)
       etar <- eta[seqr, l]
       beta[((r - 1) * d + 1):(r * d), l] <- solve(t(X) %*% X, t(X) %*% etar)
-      preceta[r, l] <- 1 / var(etar)
+      prec_eta[r, l] <- 1 / var(etar)
     }
   }
   
   rho <- mean(cor(phi_mat)[upper.tri(cor(phi_mat))])
-  alpha <- mean(diag(cov(phi_mat)))
-  C_rho_alpha <- mean(diag(cov(phi_mat)))
   delta_eta <- matrix(1, nreg, fpca1$npc)
   delta_eta[1, 1] <- preceta[1,1]
   for (l in 2:fpca1$npc) {
@@ -117,7 +304,23 @@ initialize_mcmc_weak <- function(Y, tt, nt, B, X, pve = .99, ldim = NULL) {
   mean.Yt.c <- Yt - mean.Ytmat
   Yt.reg.c <- matrix(mean.Yt.c, nrow = nsub * nt, ncol = nreg, byrow = TRUE)
   Yt.func.c <- matrix(t(mean.Yt.c), nrow = nsub * nreg, ncol = nt, byrow = TRUE)
-  
+  fpca1 <- refund::fpca.face(Yt.func.c, center = TRUE, pve = pve, npc = ldim,
+                             knots = floor(length(tt) / 5))
+  npc <- fpca1$npc
+  lambda <- matrix(0, ncol(B), npc)
+  for (i in 1:npc) {
+    lambda[, i] <- solve(t(B) %*% B) %*% t(B) %*% fpca1$efunctions[, i]
+  }
+  phi <- eigen(cov(Yt.reg.c))$vectors
+  eta <- matrix(0, nsub * nreg, npc)
+  preceta <- matrix(0, nreg, npc)
+  for (i in 1:nsub) {
+    for (j in 1:nreg) {
+      for (j in 1:npc) {
+        
+      }
+    }
+  }
 }
 initialize_mcmc_weak <- function(Y, tt, nt, B, X, pve = .99, ldim = NULL) {
   
