@@ -25,8 +25,8 @@ ParametersPartial::ParametersPartial(const Data& dat, Rcpp::Nullable<Rcpp::List>
     Rcpp::NumericVector omega_tmp = init["omega"];
     Rcpp::NumericMatrix lambda_tmp = init["lambda"];
     Rcpp::NumericMatrix eta_tmp = init["eta"];
-    Rcpp::NumericMatrix phi_tmp = init["phi"];
-    Rcpp::NumericMatrix sigmasqeta_tmp = init["preceta"];
+    Rcpp::NumericMatrix phi_tmp = init["phi_mat"];
+    Rcpp::NumericMatrix sigmasqeta_tmp = init["prec_eta"];
     Rcpp::NumericMatrix delta_eta_tmp = init["delta_eta"];
     Rcpp::NumericMatrix beta_tmp = init["beta"];
     omega = arma::vec(omega_tmp);
@@ -46,8 +46,10 @@ ParametersPartial::ParametersPartial(const Data& dat, Rcpp::Nullable<Rcpp::List>
       phi.slice(l) = Rcpp::as<arma::mat>(phi_tmp_tmp);
     }
     init_phi = phi;
-    rho = init["rho"];
-    alpha = init["alpha"];
+    // rho = init["rho"];
+    rho = .1;
+    // alpha = init["alpha"];
+    alpha = .1;
 
   } else {
     omega = arma::vec(dat.nreg, arma::fill::ones);
@@ -399,7 +401,7 @@ void ParametersPartial::update_phi(const Data& dat, Transformations& transf) {
   b = arma::zeros(dat.nreg * dat.ldim);
   diagomega = arma::diagmat(omega);
   eta_sum = arma::zeros(dat.ldim, dat.ldim);
-  C_inv = arma::inv_sympd(transf.C_rho);
+  // C_inv = arma::inv_sympd(transf.C_rho);
   diag_r = arma::eye(dat.nreg, dat.nreg);
   transf.fit.zeros();
   arma::uvec constr_indices;
@@ -426,8 +428,8 @@ void ParametersPartial::update_phi(const Data& dat, Transformations& transf) {
       eta_sum = eta_sum + diageta * diageta;
     }
     b = tmpad - tmprm;
-    Q = arma::kron(eta_sum, diagomega) +
-      arma::kron(C_inv, diag_r);
+    Q = arma::kron(eta_sum, diagomega); // +
+      // arma::kron(C_inv, diag_r);
     if (r > 0) {
       constr_indices =
         arma::sort(arma::join_cols(

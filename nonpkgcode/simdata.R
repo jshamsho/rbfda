@@ -1,9 +1,11 @@
 library(mgcv)
 source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/initialize_mcmc.R")
+source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/simulate_data.R")
+
 nt <- 60
 tt <- seq(from = 0, to = 1, length.out = nt)
 nreg <- 4
-nsub <- 100
+nsub <- 300
 ndf <- 15
 d <- 2
 ldim <- 4
@@ -27,10 +29,6 @@ for (l in 1:ldim) {
   }
 }
 phi <- array(dim = c(nreg, nreg, ldim))
-orthmat <- pracma::randortho(nreg)
-for (r in 1:nreg) {
-  if (orthmat[r,r] < 0) orthmat[,r] <- -orthmat[,r]
-}
 for (l in 1:ldim) {
   # phi[,,l] <- diag(nreg)
   # phi[,,l] <- rWishart(1, 10, diag(nreg))
@@ -138,14 +136,22 @@ for (i in 1:nsub) {
 #   }
 # }
 # matlines(-eigenfunc)
+# Y <- sim_partial(nt, nsub, nreg, ldim = 5)
+nsub <- 200
+nt <- 60
+nreg <- 4
+ldim <- 4
+sim_data <- sim_partial(nt, nsub, nreg, ldim)
+sim_data <- sim_partial_cs(nt, nsub, nreg, ldim, rho1 = .8)
+# sim_data <- sim_non_partial(nt, nsub, nreg, ldim, rho1 = .8, rho2 = .2)
 X <- cbind(rep(1, nsub), matrix(rnorm(nsub * (d - 1)), nrow = nsub, ncol = d - 1))
 basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2), data.frame(tt), absorb.cons = FALSE)
 B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
-# matplot(tt, B, xlab = "time", ylab = "spline", type = "l")
-init_mcmc <- initialize_mcmc_partial(Y, tt, nt, B, X, ldim = 4)
-# init_mcmc <- initialize_mcmc_weak(Y, tt, nt, B, X)
-result <- run_mcmc(Y, X, B, tt, penalty, init_mcmc$npc, 5000, 1000, 10, init_mcmc)
+init_mcmc <- initialize_mcmc_partial(sim_data$Y, tt, B, X, ldim = ldim)
+init_mcmc <- initialize_mcmc_weak(Y, tt, B, X)
+plot(init_mcmc$psi[,1])
+result <- run_mcmc(sim_data$Y, X, B, tt, penalty, init_mcmc$npc, 5000, 1000, 1, init_mcmc)
 
 gamma1 <- function(a, b) {
   gamma((b + 1) / 2) * gamma(a / 2) / (sqrt(pi) * gamma((a + b) / 2))
@@ -173,23 +179,23 @@ get_theta <- function(eta, phi, nreg) {
   ldim <- ncol(eta)
   eta <- reshape_nreg(eta, nsub, nreg)
   p <- nreg * ldim
-  mu <- -rx(nsub, p)^2 * (p - nsub + .5)
+  mu <- -rn(nsub, p)^2 * (p - nsub + .5)
   for (i in 1:nreg) {
-    mu <- mu + rx(nsub, nreg)^2 * (nreg - nsub + .5)
+    mu <- mu + rn(nsub, nreg)^2 * (nreg - nsub + .5)
   }
-  sigsq <- 2 * rx(nsub, p)^2
+  sigsq <- 2 * rn(nsub, p)^2
   for (i in 1:nreg) {
-    sigsq <- sigsq - 2 * rx(nsub, nreg)^2
+    sigsq <- sigsq - 2 * rn(nsub, nreg)^2
   }
-  theta1 <- matrix(0, nrow = nsub, ncol = nreg * ldim)
+  theta <- matrix(0, nrow = nsub, ncol = nreg * ldim)
   for (i in 1:nsub) {
-    for (j in 1:nreg) {
-      idx1 <- (j - 1) * ldim + 1
-      idx2 <- j * ldim
-      theta1[i, idx1:idx2] <- phi[,,j] %*% eta[i, idx1:idx2]
+    for (l in 1:ldim) {
+      idx1 <- (l - 1) * nreg + 1
+      idx2 <- l * nreg
+      theta[i, idx1:idx2] <- phi[,,l] %*% eta[i, idx1:idx2]
     }
   }
-  return(theta1)
+  return(theta)
 }
 
 chisqversion <- function(x, nreg, ldim) {
@@ -216,8 +222,8 @@ normalversion <- function(x, nreg, ldim) {
   covx <- cov(x)
   p <- nreg * ldim
   n <- nrow(x)
-  mu <- -rx(n, p)^2 * (p - n + .5) + ldim * rx(n, nreg)^2 * (nreg - n + .5)
-  sigsq <- 2 * rx(n, p)^2 - 2 * ldim * rx(n, nreg)^2
+  mu <- -rn(n, p)^2 * (p - n + .5) + ldim * rn(n, nreg)^2 * (nreg - n + .5)
+  sigsq <- 2 * rn(n, p)^2 - 2 * ldim * rn(n, nreg)^2
   loglambda <- log(det(covx))
   for (j in 1:ldim) {
     idx1 <- (j - 1) * nreg + 1
@@ -237,7 +243,7 @@ pvals <- sapply(501:5000, function(iter) {theta2 <- get_theta(result$samples$eta
                 normalversion(theta2, nreg, ldim)}
 )
 hist(pvals)
-
+plot(pvals, type = "l")
 scale <- init_mcmc$alpha
 rho <- .1
 C_rho <- scale * rho * rep(1, init_mcmc$npc) %*% t(rep(1, init_mcmc$npc)) + scale * (1 - rho) * diag(init_mcmc$npc)
@@ -266,21 +272,21 @@ for (l in 1:ldim) {
 }
 
 cov(eta_mat)
-efunc <- 2
+efunc <- 1
 plot(B %*% result$samples$lambda[,efunc,100], type = "l")
 evec <- numeric(500)
 for (i in 1:5000) {
   lines(B %*% result$samples$lambda[,efunc,i])
   evec[i] <- (B %*% result$samples$lambda[,efunc,i])[30]
 }
-lines(eigenfuncs[,efunc], col = "red")
+lines(-sim_data$eigenfuncs[,efunc], col = "red")
 lines(B %*% init_mcmc$lambda[,efunc], col = "green")
 lines(B %*% apply(result$samples$lambda[,efunc,],1,mean), col = "blue")
-sum((B %*% init_mcmc$lambda[,efunc] - eigenfuncs[,efunc])^2)
-sum((B %*% apply(result$samples$lambda[,efunc,], 1, median) - eigenfuncs[,efunc])^2)
+sum((B %*% init_mcmc$lambda[,efunc] + sim_data$eigenfuncs[,efunc])^2)
+sum((B %*% apply(result$samples$lambda[,efunc,], 1, median) + sim_data$eigenfuncs[,efunc])^2)
 r <- 3
 i <- 2
-plot(Y[((i - 1) * nt + 1):(i * nt),r])
+plot(sim_data$Y[((i - 1) * nt + 1):(i * nt),r])
 seqr <- ((i - 1) * nreg + 1):(i * nreg)
 for (i in 201:5000) {
   tmpsum <- numeric(nt)
@@ -289,7 +295,7 @@ for (i in 201:5000) {
   }
   lines(tmpsum, col = "blue")
 }
-hist(result$samples$rho)
+# hist(result$samples$rho)
 
 iter <- 1000 
 l <- 4
@@ -307,7 +313,7 @@ for (i in 1:1000) {
     delta_eta_cumprod[,l,i] <- cumprod(result$samples$delta_eta[,l,i]) * initd[l - 1]
   }
 }
-r <- 1
+r <- 2
 l <- 1
 plot(1 / delta_eta_cumprod[r,l,201:1000])
 abline(h = 1 / init_mcmc$preceta[r,l])
