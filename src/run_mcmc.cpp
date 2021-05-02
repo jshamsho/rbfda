@@ -38,9 +38,10 @@ Rcpp::List run_mcmc(arma::mat response, arma::mat design,
            basis, time,
            penalty, ldim,
            iter, burnin, thin);
-  Parameters* pars = ParametersFactory::new_pars(covstruct, dat, init_);
-  Transformations transf(dat, *pars);
-  Sampler* mysampler = SamplerFactory::new_mcmc(covstruct, dat, *pars, transf);
+  Sampler* mysampler = SamplerFactory::new_mcmc(covstruct, dat, init_);
+  // Parameters* pars = ParametersFactory::new_pars(covstruct, dat, init_);
+  // Transformations transf(dat, *pars);
+  // Sampler* mysampler = SamplerFactory::new_mcmc(covstruct, dat, *pars, transf);
   mysampler->sample();
   Rcpp::List return_me;
   return_me["data"] = mysampler->write_data();

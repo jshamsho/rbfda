@@ -1,20 +1,31 @@
 #include "transformations.h"
 
+// TransformationsPartial::TransformationsPartial(Data& dat, ParametersPartial& pars) {
+//   Transformations(dat, pars);
+//   phi_lin_constr = arma::mat(dat.ldim * dat.nreg, dat.ldim * dat.nreg);
+//   Rcpp::Rcout << "btb size = " << arma::size(btb) << "\n";
+//   // initialize_fit(dat, pars);
+// }
+
+TransformationsPartial::TransformationsPartial(Data& dat, ParametersPartial& pars) : Transformations(dat, pars) {
+  phi_lin_constr = arma::zeros(dat.ldim * dat.nreg, dat.ldim * dat.nreg);
+  initialize_fit(dat, pars);
+}
 Transformations::Transformations(Data& dat, Parameters& pars) {
   btb = dat.basis.t() * dat.basis;
   bty = arma::mat(dat.basisdim * dat.nsub, dat.nreg);
   fit = arma::mat(dat.nsub * dat.nt, dat.nreg, arma::fill::zeros);
-  fit_latent = arma::mat(dat.nsub * dat.basisdim, dat.nreg, arma::fill::zeros);
+  // fit_latent = arma::mat(dat.nsub * dat.basisdim, dat.nreg, arma::fill::zeros);
   fit_eta = arma::mat(dat.nsub * dat.nreg, dat.ldim, arma::fill::randn);
   psi = dat.basis * pars.lambda;
   ones_mat = arma::ones<arma::mat>(dat.ldim, dat.ldim);
   psi_lin_constr = arma::zeros(dat.ldim, dat.basisdim);
-  phi_lin_constr = arma::zeros(dat.ldim * dat.nreg, dat.ldim * dat.nreg);
+  // phi_lin_constr = arma::zeros(dat.ldim * dat.nreg, dat.ldim * dat.nreg);
   delta_eta_cumprod = arma::mat(dat.nreg, dat.ldim);
-  initialize_fit(dat, pars);
+  // initialize_fit(dat, pars);
 }
 
-void Transformations::initialize_fit(Data& dat, Parameters& pars) {
+void TransformationsPartial::initialize_fit(Data& dat, ParametersPartial& pars) {
   arma::uword first = 0;
   arma::uword last = dat.nt - 1;
   arma::uword first_eta = 0;
@@ -34,11 +45,11 @@ void Transformations::initialize_fit(Data& dat, Parameters& pars) {
   complete_response(dat, pars);
   for (arma::uword i = 0; i < dat.nsub; i++) {
     bty.rows(i * dat.basisdim, (i + 1) * dat.basisdim - 1) = dat.basis.t() * dat.response.rows(i * dat.nt, (i + 1) * dat.nt - 1);
-    for (arma::uword l = 0; l < dat.ldim; l++) {
-      fit_latent.rows(i * dat.basisdim, (i + 1) * dat.basisdim - 1) = 
-        fit_latent.rows(i * dat.basisdim, (i + 1) * dat.basisdim - 1) + 
-        pars.lambda.col(l) * pars.eta.col(l).rows(i * dat.nreg, (i + 1) * dat.nreg - 1).t() * pars.phi.slice(l).t();
-    }
+    // for (arma::uword l = 0; l < dat.ldim; l++) {
+  //     fit_latent.rows(i * dat.basisdim, (i + 1) * dat.basisdim - 1) = 
+  //       fit_latent.rows(i * dat.basisdim, (i + 1) * dat.basisdim - 1) + 
+  //       pars.lambda.col(l) * pars.eta.col(l).rows(i * dat.nreg, (i + 1) * dat.nreg - 1).t() * pars.phi.slice(l).t();
+  //   }
   }
   
   // for (arma::uword l = 0; l < dat.ldim; l++) {
@@ -53,9 +64,13 @@ void Transformations::initialize_fit(Data& dat, Parameters& pars) {
   }
   for (arma::uword l = 0; l < dat.ldim; l++) {
     for (arma::uword r = 0; r < dat.nreg; r++) {
-      // Rcpp::Rcout << l * dat.nreg + r << "\n";
+      Rcpp::Rcout << l * dat.nreg + r << "\n";
+      Rcpp::Rcout << l * dat.nreg << "\n";
+      Rcpp::Rcout << (l + 1) * dat.nreg - 1 << "\n";
+      Rcpp::Rcout << pars.phi.slice(l).col(r).t() << "\n";
       phi_lin_constr.row(l * dat.nreg + r).cols(l * dat.nreg, (l + 1) * dat.nreg - 1) =
         pars.phi.slice(l).col(r).t();
+      Rcpp::Rcout << phi_lin_constr.row(l * dat.nreg + r).cols(l * dat.nreg, (l + 1) * dat.nreg - 1) << "\n";
     }
   }
   delta_eta_cumprod.col(0) = arma::cumprod(pars.delta_eta.col(0));
@@ -83,3 +98,9 @@ void Transformations::complete_response(Data& dat, Parameters& pars) {
     }
   }*/
 }
+
+TransformationsWeak::TransformationsWeak(Data& dat, ParametersWeak& pars) {
+  Transformations(dat, pars);
+}
+
+void TransformationsWeak::initialize_fit(Data& dat, ParametersWeak& pars) {}

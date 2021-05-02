@@ -6,6 +6,8 @@
 #include "transformations.h"
 
 class Transformations;
+class TransformationsPartial;
+class TransformationsWeak;
 
 class Parameters
 {
@@ -36,14 +38,13 @@ class Parameters
       a1_container, a2_container, a3_container, nu_container, delta_lambda;
     arma::mat lambda, sigmasqeta, sigmasqetai, delta, eta, xi_eta, delta_eta,
       beta, delta_beta, phi0, tau_phi0, xi_lambda, delta_phi;
-    arma::cube phi, init_phi, xi_lambda_container;
+    arma::cube phi, xi_lambda_container;
     arma::mat omega_container, zeta_container;
     arma::cube lambda_container, eta_container, sigmasqetai_container, 
       sigmasqeta_container, xi_eta_container, beta_container, delta_beta_container,
       delta_eta_container, phi0_container, tau_phi0_container, delta_lambda_container, 
       xi_phi, delta_phi_container;
     arma::field<arma::cube> xi_phi_container;
-    arma::field<arma::cube> phi_container;
     
     // omega_container = arma::mat(dat.nreg, dat.iter);
     // zeta_container = arma::mat(dat.ldim, dat.iter);
@@ -51,10 +52,10 @@ class Parameters
     double prior_shape = 0;
     Parameters(const Data&, Rcpp::Nullable<Rcpp::List>);
     Parameters() {};
-    virtual void update_lambda(const Data&, Transformations&) = 0;
-    virtual void update_phi(const Data&, Transformations&) = 0;
-    virtual void update_eta(const Data&, Transformations&) = 0;
-    virtual void update_omega(const Data&, Transformations&) = 0;
+    // virtual void update_lambda(const Data&, Transformations&) = 0;
+    // virtual void update_phi(const Data&, Transformations&) = 0;
+    // virtual void update_eta(const Data&, Transformations&) = 0;
+    // virtual void update_omega(const Data&, Transformations&) = 0;
     
     void update_delta(const Data&, Transformations&);
     void update_xi_eta(const Data&, Transformations&);
@@ -70,22 +71,28 @@ class Parameters
 class ParametersPartial : public Parameters
 {
 public:
+  arma::cube phi;
+  arma::field<arma::cube> phi_container;
+  ParametersPartial() {}
   ParametersPartial(const Data& dat, Rcpp::Nullable<Rcpp::List> init_);
   void update_eta(const Data&, Transformations&);
   void update_lambda(const Data&, Transformations&);
-  void update_phi(const Data&, Transformations&);
-  void update_omega(const Data&, Transformations&);
+  void update_phi(const Data&, TransformationsPartial&);
+  void update_omega(const Data&, TransformationsPartial&);
   ~ParametersPartial() {}
 };
 
 class ParametersWeak : public Parameters
 {
 public:
+  arma::mat phi;
+  arma::cube phi_container;
+  ParametersWeak() {}
   ParametersWeak(const Data& dat, Rcpp::Nullable<Rcpp::List> init_);
-  void update_eta(const Data&, Transformations&);
-  void update_lambda(const Data&, Transformations&);
-  void update_phi(const Data&, Transformations&);
-  void update_omega(const Data&, Transformations&);
+  void update_eta(const Data&, TransformationsWeak&);
+  void update_lambda(const Data&, TransformationsWeak&);
+  void update_phi(const Data&, TransformationsWeak&);
+  void update_omega(const Data&, TransformationsWeak&);
   ~ParametersWeak() {}
 };
 

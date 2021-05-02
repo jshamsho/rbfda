@@ -14,11 +14,12 @@ class Sampler
 {
 public:
   Data dat;
-  Parameters *pars;
-  Transformations transf;
+  // Parameters *pars;
+  // Transformations transf;
   // parameterized constructor
-  Sampler(Data& dat, Parameters& pars, Transformations& transf) :
-    dat(dat), pars(&pars), transf(transf) {}
+  // Sampler(Data& dat, Parameters& pars, Transformations& transf) :
+    // dat(dat), pars(&pars), transf(transf) {}
+  Sampler() {};
   arma::uword current_iter = 0;
   virtual void sample() = 0;
   virtual void write_samples() = 0;
@@ -31,19 +32,34 @@ public:
 class SamplerPartial : public Sampler
 {
   public:
-    SamplerPartial(Data& dat, Parameters& pars, Transformations& transf) :
-    Sampler(dat, pars, transf) {}
+    ParametersPartial pars;
+    TransformationsPartial transf;
+    SamplerPartial(Data&, Rcpp::Nullable<Rcpp::List>);
     void sample();
     void write_samples();
     Rcpp::List get_samples();
     ~SamplerPartial() {}
 };
 
+class SamplerWeak : public Sampler
+{
+public:
+  ParametersWeak pars;
+  Transformations transf;
+  SamplerWeak(Data& dat, Rcpp::Nullable<Rcpp::List>);
+  void sample();
+  void write_samples();
+  Rcpp::List get_samples();
+  ~SamplerWeak() {}
+};
 class SamplerFactory {
 public:
-  static Sampler *new_mcmc(std::string covstruct, Data& dat, Parameters& pars, Transformations& transf) {
-    if(covstruct == "partial") return new SamplerPartial(dat, pars, transf);
-    // if(type == "unequal") return new SamplerUnequal(dat, pars, transf);
+  static Sampler *new_mcmc(std::string covstruct, Data& dat, Rcpp::Nullable<Rcpp::List> init_) {
+    if(covstruct == "partial") {
+      return new SamplerPartial(dat, init_); 
+    } else if (covstruct == "weak") {
+      return new SamplerWeak(dat, init_);
+    }
     return nullptr;
   }
 };
