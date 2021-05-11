@@ -1,4 +1,5 @@
 library(mgcv)
+library(rbfda)
 source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/initialize_mcmc.R")
 source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/simulate_data.R")
 source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/testing.R")
@@ -19,95 +20,82 @@ basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2), data.frame(tt), ab
 B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
 init_mcmc <- initialize_mcmc_partial(sim_data$Y, tt, B, X, ldim = ldim)
-init_mcmc <- initialize_mcmc_weak(sim_data$Y, tt, B, X, ldim = ldim)
 plot(init_mcmc$psi[,1])
-result <- run_mcmc(sim_data$Y, X, B, tt, penalty, init_mcmc$npc, 5000, 1000, 1, init_mcmc, covstruct = "partial")
 result <- run_mcmc(response = sim_data$Y, design = X, basis = B, time = tt,
-                   penalty = penalty, ldim = ldim, iter = 1, burnin = 1000,
+                   penalty = penalty, ldim = ldim, iter = 5000, burnin = 1000,
                    thin = 1, init_ = init_mcmc, covstruct = "partial")
 result$samples$phi[[1]][,,4] %>% tcrossprod()
 pvals <- get_pvals_partial(result)
 hist(pvals)
 abline(v = median(pvals))
+plot(pvals, type = "l")
 median(pvals)
 get_pmin(pvals)
-hist(pvals, main = "")
-plot(pvals, type = "l")
-scale <- init_mcmc$alpha
-rho <- .1
-C_rho <- scale * rho * rep(1, init_mcmc$npc) %*% t(rep(1, init_mcmc$npc)) + scale * (1 - rho) * diag(init_mcmc$npc)
-phi_mat <- matrix(0, nrow = nreg^ 2, init_mcmc$npc)
-log_phi <- 0
-for (r in 1:nreg) {
-  for (rp in 1:nreg) {
-    # x <- phi[r, rp, ]
-    x <- result$samples$phi[[1000]][rp,r,]
-    phi_mat[(r - 1) * nreg + rp, ] <- x
-    log_phi <- log_phi + mvtnorm::dmvnorm(x, rep(0, init_mcmc$npc), sigma = C_rho, log = TRUE)
+
+
+r <- 3
+seqr <- ((r - 1) * d):(r * d)
+plot.new()
+for (i in 201:5000) {
+  tmpsum <- numeric(nt)
+  for (l in 1:init_mcmc$npc) {
+    tmpsum <- tmpsum + B %*% result$samples$lambda[,l, i] %*% 
+      t(result$samples$phi[[i]][r,,l]) %*% 
+      (result$samples$beta[seqr, l, i]
   }
-}
-sum(mvtnorm::dmvnorm(phi_mat, rep(0, init_mcmc$npc), sigma = C_rho, log = TRUE))
-pairs(phi_mat)
-hist(result$samples$rho)
-eta_mat <- matrix(0, nrow = nsub, ncol = ldim * nreg)
-counter <- 1
-for (l in 1:ldim) {
-  for (r in 1:nreg) {
-    col_ind <- (l - 1) * nreg + r
-    seqr <- seq(from = r, to = nsub * nreg, by = nreg)
-    eta_mat[, col_ind] <- result$samples$eta[seqr,l,1000]
-    counter <- counter + 1
-  }
+  lines(tmpsum, col = "blue")
 }
 
-cov(eta_mat)
-efunc <- 2
+x_vec <- c(1, 1)
+meanf <- numeric(nt)
+for (l in 1:ldim) {
+  meanf <- meanf + B %*% result$samples$lambda[, l, 1] %*%
+    result$samples$phi[[1]][r,,l] %*% 
+    t(matrix(result$samples$beta[,l,1], d)) %*% x_vec
+}
+plot(tt, meanf, type = "l", ylim = c(-2,2))
+for (i in 500:5000) {
+  meanf <- numeric(nt)
+  for (l in 1:ldim) {
+    meanf <- meanf + B %*% result$samples$lambda[, l, i] %*%
+      result$samples$phi[[i]][r,,l] %*% 
+      t(matrix(result$samples$beta[,l,i], d)) %*% x_vec
+  }
+  lines(tt, meanf)
+}
+
+efunc <- 1
 plot(B %*% result$samples$lambda[,efunc,100], type = "l")
 evec <- numeric(5000)
 for (i in 1:5000) {
   lines(B %*% result$samples$lambda[,efunc,i])
   evec[i] <- (B %*% result$samples$lambda[,efunc,i])[30]
 }
-lines(-sim_data$psi[,efunc], col = "red")
+lines(sim_data$psi[,efunc], col = "red")
 lines(init_mcmc$psi[,efunc], col = "green")
 lines(B %*% apply(result$samples$lambda[,efunc,],1,mean), col = "blue")
-sum((init_mcmc$psi[,efunc] + sim_data$psi[,efunc])^2)
-sum((B %*% apply(result$samples$lambda[,efunc,], 1, median) + sim_data$psi[,efunc])^2)
-r <- 3
+sum((init_mcmc$psi[,efunc] - sim_data$psi[,efunc])^2)
+sum((B %*% apply(result$samples$lambda[,efunc,], 1, median) - sim_data$psi[,efunc])^2)
+r <- 2
 i <- 2
 plot(sim_data$Y[((i - 1) * nt + 1):(i * nt),r])
 seqr <- ((i - 1) * nreg + 1):(i * nreg)
 for (i in 201:5000) {
   tmpsum <- numeric(nt)
   for (l in 1:init_mcmc$npc) {
-    tmpsum <- tmpsum + B %*% result$samples$lambda[,l, i] %*% t(result$samples$phi[[i]][r,,l]) %*% result$samples$eta[seqr, l, i]
+    tmpsum <- tmpsum + B %*% result$samples$lambda[,l, i] %*% 
+      t(result$samples$phi[[i]][r,,l]) %*% 
+      result$samples$eta[seqr, l, i]
   }
   lines(tmpsum, col = "blue")
 }
-# hist(result$samples$rho)
 
-iter <- 1000 
-l <- 4
 r <- 3
-seqr <- seq(from = r, to = nsub * nreg, by = nreg)
-xb <- X %*% result$samples$beta[((r - 1) * d + 1):(r * d), l, iter]
-# sum(dgamma(result$samples$xi_eta[,,500], 1, rate = 1, log = TRUE))
-var(result$samples$eta[seqr,l,iter] - xb)
-result$samples$nu[iter]
-delta_eta_cumprod <- array(0, dim = c(nreg, init_mcmc$npc, 1000))
-for (i in 1:1000) {
-  initd <- cumprod(result$samples$delta_eta[1,,i])
-  delta_eta_cumprod[,1,i] <- cumprod(result$samples$delta_eta[,1,i])
-  for (l in 2:init_mcmc$npc) {
-    delta_eta_cumprod[,l,i] <- cumprod(result$samples$delta_eta[,l,i]) * initd[l - 1]
-  }
-}
-r <- l
 l <- 1
 plot(1 / delta_eta_cumprod[r,l,201:1000])
 abline(h = 1 / init_mcmc$preceta[r,l])
 abline(h = ((ldim - l + 1) * 1 / r)^2, col = "red")
-1 / init_mcmc$preceta[r, l]
+1 / init_mcmc$prec_eta[r, l]
 quantile(1 / delta_eta_cumprod[r,l,1:1000], c(.025, .975))
 ((ldim - l + 1) * 1 / r)^2
 

@@ -14,11 +14,6 @@ class Sampler
 {
 public:
   Data dat;
-  // Parameters *pars;
-  // Transformations transf;
-  // parameterized constructor
-  // Sampler(Data& dat, Parameters& pars, Transformations& transf) :
-    // dat(dat), pars(&pars), transf(transf) {}
   Sampler() {};
   arma::uword current_iter = 0;
   virtual void sample() = 0;
@@ -45,7 +40,7 @@ class SamplerWeak : public Sampler
 {
 public:
   ParametersWeak pars;
-  Transformations transf;
+  TransformationsWeak transf;
   SamplerWeak(Data& dat, Rcpp::Nullable<Rcpp::List>);
   void sample();
   void write_samples();

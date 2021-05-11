@@ -320,23 +320,15 @@ set_param_weak <- function(weak_class) {
     omega[r] <- 1 / var(Y[,r] - Y.smoothed[,r], na.rm = TRUE)
   }
   
-  delta_eta <- matrix(1, nreg, npc)
-  delta_eta[1, 1] <- prec_eta[1,1]
-  for (l in 2:npc) {
-    delta_eta[1, l] <- prec_eta[1, l] / cumprod(delta_eta[1,])[l - 1]
+  delta1 <- rep(1, nreg)
+  delta2 <- rep(1, npc)
+  delta1[1] <- sqrt(prec_eta[1,1])
+  for (r in 2:nreg) {
+    delta1[r] <- prec_eta[r, 1] / cumprod(delta1)[r - 1]
   }
-  if (nreg > 1) {
-    for (r in 2:nreg) {
-      delta_eta[r, 1] <- prec_eta[r, 1] / cumprod(delta_eta[,1])[r - 1]
-    }
-    for (r in 2:nreg) {
-      for (l in 2:npc) {
-        delta_eta[r, l] <- prec_eta[r, l] / (cumprod(delta_eta[,l])[r - 1] * 
-                                               cumprod(delta_eta[1,])[l - 1])
-      }
-    }
+  for (l in 2:ldim) {
+    delta2[l] <- prec_eta[1, l] / cumprod(delta2)[l - 1]
   }
-  
   members <- list(Y = Y, Y.trans = Y.trans, Y.smoothed = Y.smoothed, tt = tt,
                   B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
                   omega = omega, psi = psi, phi = phi, lambda = lambda,

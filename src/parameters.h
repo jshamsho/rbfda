@@ -32,17 +32,17 @@ class Parameters
     double rho_shape1 = 1, rho_shape2 = 1;
     double old_logpost = -arma::datum::inf;
     double rho, alpha;
-    double a1, a2, a3;
+    double a1, a2;
     double nu;
     arma::vec omega, zeta, rho_container, alpha_container,
-      a1_container, a2_container, a3_container, nu_container, delta_lambda;
-    arma::mat lambda, sigmasqeta, sigmasqetai, delta, eta, xi_eta, delta_eta,
+      a1_container, a2_container, nu_container, delta_lambda;
+    arma::mat lambda, sigmasqeta, sigmasqetai, delta, eta, xi_eta,
       beta, delta_beta, phi0, tau_phi0, xi_lambda, delta_phi;
     arma::cube phi, xi_lambda_container;
     arma::mat omega_container, zeta_container;
     arma::cube lambda_container, eta_container, sigmasqetai_container, 
       sigmasqeta_container, xi_eta_container, beta_container, delta_beta_container,
-      delta_eta_container, phi0_container, tau_phi0_container, delta_lambda_container, 
+      phi0_container, tau_phi0_container, delta_lambda_container, 
       xi_phi, delta_phi_container;
     arma::field<arma::cube> xi_phi_container;
     
@@ -59,23 +59,29 @@ class Parameters
     
     void update_delta(const Data&, Transformations&);
     void update_xi_eta(const Data&, Transformations&);
-    void update_delta_eta(const Data&, Transformations&);
+    // void update_delta_eta(const Data&, Transformations&);
     void update_beta(const Data&, Transformations&);
     void update_delta_beta(const Data&, Transformations&);
     void update_zeta(const Data&, Transformations&);
     void update_nu(const Data&, Transformations);
-    void update_a123(const Data&, Transformations&);
+    // void update_a123(const Data&, Transformations&);
     ~Parameters(){}
 };
 
 class ParametersPartial : public Parameters
 {
 public:
+  double a3;
+  arma::vec a3_container;
   arma::cube phi;
   arma::field<arma::cube> phi_container;
+  arma::mat delta_eta;
+  arma::cube delta_eta_container;
   ParametersPartial() {}
   ParametersPartial(const Data& dat, Rcpp::Nullable<Rcpp::List> init_);
   void update_eta(const Data&, Transformations&);
+  void update_delta_eta(const Data&, Transformations&);
+  void update_a123(const Data&);
   void update_lambda(const Data&, Transformations&);
   void update_phi(const Data&, TransformationsPartial&);
   void update_omega(const Data&, TransformationsPartial&);
@@ -87,9 +93,15 @@ class ParametersWeak : public Parameters
 public:
   arma::mat phi;
   arma::cube phi_container;
+  double delta_eta11;
+  arma::vec delta_eta11_container, delta_eta1, delta_eta2;
+  arma::mat delta_eta1_container, delta_eta2_container;
   ParametersWeak() {}
   ParametersWeak(const Data& dat, Rcpp::Nullable<Rcpp::List> init_);
   void update_eta(const Data&, TransformationsWeak&);
+  void update_delta1(const Data&);
+  // void update_delta_eta(const Data&, Transformations&);
+  void update_a123(const Data&);
   void update_lambda(const Data&, TransformationsWeak&);
   void update_phi(const Data&, TransformationsWeak&);
   void update_omega(const Data&, TransformationsWeak&);
