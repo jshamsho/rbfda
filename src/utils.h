@@ -2,6 +2,9 @@
 #define MODSTRING_H1
 
 #include <RcppArmadillo.h>
+#include "data.h"
+class Data;
+
 arma::uvec arma_mod(arma::uvec, arma::uword);
 arma::vec bayesreg(arma::vec const &b, arma::mat const &Q);
 arma::vec bayesreg_orth(arma::vec const &b,
@@ -11,4 +14,8 @@ arma::vec dmvnrm_arma_fast(arma::mat const &x,
                            arma::rowvec const &mean,  
                            arma::mat const &sigma, 
                            bool const logd);
+arma::vec delta_eta_diff(arma::mat& delta_eta1, arma::mat& delta_eta2,
+                    arma::mat& eta, arma::mat& beta, arma::mat& xi_eta,
+                    arma::uword nsub, arma::uword nreg, arma::uword ldim,
+                    arma::uword designdim, arma::mat& design);
 #endif

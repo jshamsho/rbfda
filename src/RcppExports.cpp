@@ -108,6 +108,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// delta_eta_diff
+arma::vec delta_eta_diff(arma::mat& delta_eta1, arma::mat& delta_eta2, arma::mat& eta, arma::mat& beta, arma::mat& xi_eta, double a1, double a2, arma::uword nsub, arma::uword nreg, arma::uword ldim, arma::uword designdim, arma::mat& design);
+RcppExport SEXP _rbfda_delta_eta_diff(SEXP delta_eta1SEXP, SEXP delta_eta2SEXP, SEXP etaSEXP, SEXP betaSEXP, SEXP xi_etaSEXP, SEXP a1SEXP, SEXP a2SEXP, SEXP nsubSEXP, SEXP nregSEXP, SEXP ldimSEXP, SEXP designdimSEXP, SEXP designSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat& >::type delta_eta1(delta_eta1SEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type delta_eta2(delta_eta2SEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type eta(etaSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type xi_eta(xi_etaSEXP);
+    Rcpp::traits::input_parameter< double >::type a1(a1SEXP);
+    Rcpp::traits::input_parameter< double >::type a2(a2SEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type nsub(nsubSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type nreg(nregSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type ldim(ldimSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type designdim(designdimSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type design(designSEXP);
+    rcpp_result_gen = Rcpp::wrap(delta_eta_diff(delta_eta1, delta_eta2, eta, beta, xi_eta, a1, a2, nsub, nreg, ldim, designdim, design));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_rbfda_get_pval", (DL_FUNC) &_rbfda_get_pval, 3},
@@ -118,6 +140,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rbfda_rcpparma_innerproduct", (DL_FUNC) &_rbfda_rcpparma_innerproduct, 1},
     {"_rbfda_rcpparma_bothproducts", (DL_FUNC) &_rbfda_rcpparma_bothproducts, 1},
     {"_rbfda_run_mcmc", (DL_FUNC) &_rbfda_run_mcmc, 11},
+    {"_rbfda_delta_eta_diff", (DL_FUNC) &_rbfda_delta_eta_diff, 12},
     {NULL, NULL, 0}
 };
 

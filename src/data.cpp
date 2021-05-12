@@ -23,6 +23,7 @@ Data::Data(arma::mat& response, arma::mat& design,
   this->missing = arma::find_nonfinite(this->response);
   this->missing_sub = arma_mod(this->missing, this->nt * this->nsub);
   this->missing_reg = arma::floor(this->missing / (this->nt * this->nsub));
+  this->c = std::min(nreg, ldim);
 }
 
 Rcpp::List Data::write_data() {

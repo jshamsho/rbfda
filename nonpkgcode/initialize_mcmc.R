@@ -1,5 +1,6 @@
 library(refund)
 library(magrittr)
+library(NMF)
 
 initialize_mcmc_partial <- function(Y, tt, B = NULL,
                                     X = NULL, pve = NULL, ldim = NULL) {
@@ -262,8 +263,8 @@ set_size_param_weak <- function(weak_class) {
   eta <- matrix(0, nreg * nsub, npc)
   prec_eta <- matrix(0, nreg, npc)
   beta <- matrix(0, nreg * ncol(X), npc)
-  delta_eta1 <- numeric(nreg)
-  delta_eta2 <- numeric(npc)
+  delta_eta1 <- matrix(0, nreg, min(nreg, ldim))
+  delta_eta2 <- matrix(0, min(nreg, ldim), ldim)
   
   members <- list(Y = Y, Y.trans = Y.trans, Y.smoothed = Y.smoothed, tt = tt,
                   B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
@@ -321,16 +322,16 @@ set_param_weak <- function(weak_class) {
   for (r in 1:nreg) {
     omega[r] <- 1 / var(Y[,r] - Y.smoothed[,r], na.rm = TRUE)
   }
-  
-  delta_eta1 <- rep(1, nreg)
-  delta_eta2 <- rep(1, npc)
-  delta_eta1[1] <- sqrt(prec_eta[1,1])
-  delta_eta2[1] <- sqrt(prec_eta[1,1])
-  for (r in 2:nreg) {
-    delta_eta1[r] <- mean(prec_eta[r, ] / prec_eta[r - 1,])
-  }
-  for (l in 2:ldim) {
-    delta_eta2[l] <- mean(prec_eta[, l] / prec_eta[, l - 1])
+  mynmf <- nmf(prec_eta, rank = min(nreg, npc))
+  delta_eta1 <- basis(mynmf)
+  delta_eta2 <- coef(mynmf)
+  a_basis <- sqrt(delta_eta1[1,1] * delta_eta2[1,1]) / delta_eta1[1,1]
+  a_coef <- sqrt(delta_eta1[1,1] * delta_eta2[1,1]) / delta_eta2[1,1]
+  delta_eta1 <- a_basis * delta_eta1
+  delta_eta2 <- a_coef * delta_eta2
+  for (i in 1:3) {
+    delta_eta1[,i] <- get_cumprod_coef(delta_eta1[,i])
+    delta_eta2[i,] <- get_cumprod_coef(delta_eta2[i,])
   }
   members <- list(Y = Y, Y.trans = Y.trans, Y.smoothed = Y.smoothed, tt = tt,
                   B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
