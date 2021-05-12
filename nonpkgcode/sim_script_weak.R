@@ -22,8 +22,11 @@ penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
 init_mcmc <- initialize_mcmc_weak(sim_data$Y, tt, B, X, ldim = ldim)
 plot(init_mcmc$psi[,1])
 result <- run_mcmc(response = sim_data$Y, design = X, basis = B, time = tt,
-                   penalty = penalty, ldim = ldim, iter = 1, burnin = 1000,
+                   penalty = penalty, ldim = ldim, iter = 5000, burnin = 1000,
                    thin = 1, init_ = init_mcmc, covstruct = "weak")
+cumprod(result$samples$delta_eta1[,5000]) %*% t(cumprod(result$samples$delta_eta2[,5000]))
+cumprod(init_mcmc$delta_eta1) %*% t(cumprod(init_mcmc$delta_eta2))
+init_mcmc$prec_eta
 pvals <- get_pvals_weak(result)
 hist(pvals)
 abline(v = median(pvals))
@@ -71,7 +74,7 @@ for (i in 500:5000) {
   lines(tt, meanf)
 }
 
-efunc <- 2
+efunc <- 1
 plot(B %*% result$samples$lambda[,efunc,100], type = "l")
 evec <- numeric(5000)
 for (i in 1000:5000) {
@@ -83,30 +86,31 @@ lines(init_mcmc$psi[,efunc], col = "green")
 lines(B %*% apply(result$samples$lambda[,efunc,],1,mean), col = "blue")
 sum((init_mcmc$psi[,efunc] - sim_data$psi[,efunc])^2)
 sum((B %*% apply(result$samples$lambda[,efunc,], 1, median) - sim_data$psi[,efunc])^2)
-r <- 2
-i <- 2
+
+r <- 5
+i <- 3
 plot(sim_data$Y[((i - 1) * nt + 1):(i * nt),r])
 seqr <- ((i - 1) * nreg + 1):(i * nreg)
 for (i in 201:5000) {
-  tmpsum <- numeric(nt)
-  for (l in 1:init_mcmc$npc) {
-    tmpsum <- tmpsum + B %*% result$samples$lambda[,l, i] %*% 
-      t(result$samples$phi[[i]][r,,l]) %*% 
-      result$samples$eta[seqr, l, i]
-  }
-  lines(tmpsum, col = "blue")
+  est <- B %*% result$samples$lambda[,, i] %*% 
+      t(result$samples$eta[seqr, , i]) %*%
+      result$samples$phi[r,,i]
+  lines(est, col = "blue")
 }
 
-r <- 3
+delta_eta_cumprod <- array(0, dim = c(nreg, ldim, 5000))
+for (i in 1:5000) {
+  delta_eta_cumprod[,,i] <- cumprod(result$samples$delta_eta1[,i]) %*% 
+    t(cumprod(result$samples$delta_eta2[,i]))
+}
+r <- 1
 l <- 1
-plot(1 / delta_eta_cumprod[r,l,201:1000])
-abline(h = 1 / init_mcmc$preceta[r,l])
+plot(1 / delta_eta_cumprod[r,l,201:5000])
+abline(h = 1 / init_mcmc$prec_eta[r,l])
 abline(h = ((ldim - l + 1) * 1 / r)^2, col = "red")
 1 / init_mcmc$prec_eta[r, l]
-quantile(1 / delta_eta_cumprod[r,l,1:1000], c(.025, .975))
+quantile(1 / delta_eta_cumprod[r,l,1:5000], c(.025, .975))
 ((ldim - l + 1) * 1 / r)^2
-
-1 / delta_eta_cumprod[,,1000]
 
 hist(1 / delta_eta_cumprod[5,2,])
 abline(h = 1 / init_mcmc$preceta[5,2])

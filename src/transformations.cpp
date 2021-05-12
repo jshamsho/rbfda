@@ -86,7 +86,7 @@ void TransformationsWeak::initialize_fit(Data& dat, ParametersWeak& pars) {
   arma::uword last = dat.nt - 1;
   arma::uword first_eta = 0;
   arma::uword last_eta = dat.nreg - 1;
-  delta_eta_cumprod_init = arma::cumprod(pars.delta_eta.row(0));
+  delta_eta_cumprod = pars.delta_eta1 * pars.delta_eta2.t();
   for (arma::uword i = 0; i < dat.nsub; i++) {
     first = i * dat.nt;
     last = (i + 1) * dat.nt - 1;

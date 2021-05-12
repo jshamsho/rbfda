@@ -33,19 +33,7 @@ median(pvals)
 get_pmin(pvals)
 
 
-r <- 3
-seqr <- ((r - 1) * d):(r * d)
-plot.new()
-for (i in 201:5000) {
-  tmpsum <- numeric(nt)
-  for (l in 1:init_mcmc$npc) {
-    tmpsum <- tmpsum + B %*% result$samples$lambda[,l, i] %*% 
-      t(result$samples$phi[[i]][r,,l]) %*% 
-      (result$samples$beta[seqr, l, i]
-  }
-  lines(tmpsum, col = "blue")
-}
-
+r <- 1
 x_vec <- c(1, 1)
 meanf <- numeric(nt)
 for (l in 1:ldim) {
@@ -90,16 +78,23 @@ for (i in 201:5000) {
   lines(tmpsum, col = "blue")
 }
 
+delta_eta_cumprod <- array(0, dim = c(nreg, init_mcmc$npc, 5000))
+for (i in 1:5000) {
+  initd <- cumprod(result$samples$delta_eta[1,,i])
+  delta_eta_cumprod[,1,i] <- cumprod(result$samples$delta_eta[,1,i])
+  for (l in 2:init_mcmc$npc) {
+    delta_eta_cumprod[,l,i] <- cumprod(result$samples$delta_eta[,l,i]) * initd[l - 1]
+  }
+}
 r <- 3
-l <- 1
-plot(1 / delta_eta_cumprod[r,l,201:1000])
-abline(h = 1 / init_mcmc$preceta[r,l])
-abline(h = ((ldim - l + 1) * 1 / r)^2, col = "red")
+l <- 2
+plot(1 / delta_eta_cumprod[r,l,201:5000])
+abline(h = 1 / init_mcmc$prec_eta[r,l], col = "red")
+abline(h = ((ldim - l + 1) * 1 / r)^2, col = "blue")
 1 / init_mcmc$prec_eta[r, l]
 quantile(1 / delta_eta_cumprod[r,l,1:1000], c(.025, .975))
 ((ldim - l + 1) * 1 / r)^2
 
-1 / delta_eta_cumprod[,,1000]
 
 hist(1 / delta_eta_cumprod[5,2,])
 abline(h = 1 / init_mcmc$preceta[5,2])

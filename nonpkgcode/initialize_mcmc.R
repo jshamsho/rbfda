@@ -207,7 +207,8 @@ new_weak_class <- function(Y, tt, B = NULL, X = NULL, pve = NULL, ldim = NULL) {
   eta <- NULL
   prec_eta <- NULL
   beta <- NULL
-  delta_eta <- NULL
+  delta_eta1 <- NULL
+  delta_eta2 <- NULL
   Y.trans <- matrix(0, nrow = nt, ncol = nr)
   Y.smoothed <- matrix(0, nrow = nt * nsub, ncol = nreg)
   if (is.null(B)) {
@@ -227,7 +228,7 @@ new_weak_class <- function(Y, tt, B = NULL, X = NULL, pve = NULL, ldim = NULL) {
                   B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
                   omega = omega, psi = psi, phi = phi, lambda = lambda,
                   eta = eta, prec_eta = prec_eta, beta = beta,
-                  delta_eta = delta_eta, pve = pve)
+                  delta_eta1 = delta_eta1, delta_eta2 = delta_eta2, pve = pve)
   return(members)
 }
 
@@ -250,7 +251,7 @@ run_fpca_weak <- function(weak_class) {
                   B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
                   omega = omega, psi = psi, phi = phi, lambda = lambda,
                   eta = eta, prec_eta = prec_eta, beta = beta,
-                  delta_eta = delta_eta, pve = pve)
+                  delta_eta1 = delta_eta1, delta_eta2 = delta_eta2, pve = pve)
   return(members)
 }
 
@@ -261,13 +262,14 @@ set_size_param_weak <- function(weak_class) {
   eta <- matrix(0, nreg * nsub, npc)
   prec_eta <- matrix(0, nreg, npc)
   beta <- matrix(0, nreg * ncol(X), npc)
-  delta_eta <- matrix(1, nreg, npc)
+  delta_eta1 <- numeric(nreg)
+  delta_eta2 <- numeric(npc)
   
   members <- list(Y = Y, Y.trans = Y.trans, Y.smoothed = Y.smoothed, tt = tt,
                   B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
                   omega = omega, psi = psi, phi = phi, lambda = lambda,
                   eta = eta, prec_eta = prec_eta, beta = beta,
-                  delta_eta = delta_eta, pve = pve)
+                  delta_eta1 = delta_eta1, delta_eta2 = delta_eta2, pve = pve)
   return(members)
 }
 
@@ -320,20 +322,21 @@ set_param_weak <- function(weak_class) {
     omega[r] <- 1 / var(Y[,r] - Y.smoothed[,r], na.rm = TRUE)
   }
   
-  delta1 <- rep(1, nreg)
-  delta2 <- rep(1, npc)
-  delta1[1] <- sqrt(prec_eta[1,1])
+  delta_eta1 <- rep(1, nreg)
+  delta_eta2 <- rep(1, npc)
+  delta_eta1[1] <- sqrt(prec_eta[1,1])
+  delta_eta2[1] <- sqrt(prec_eta[1,1])
   for (r in 2:nreg) {
-    delta1[r] <- prec_eta[r, 1] / cumprod(delta1)[r - 1]
+    delta_eta1[r] <- mean(prec_eta[r, ] / prec_eta[r - 1,])
   }
   for (l in 2:ldim) {
-    delta2[l] <- prec_eta[1, l] / cumprod(delta2)[l - 1]
+    delta_eta2[l] <- mean(prec_eta[, l] / prec_eta[, l - 1])
   }
   members <- list(Y = Y, Y.trans = Y.trans, Y.smoothed = Y.smoothed, tt = tt,
                   B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
                   omega = omega, psi = psi, phi = phi, lambda = lambda,
                   eta = eta, prec_eta = prec_eta, beta = beta,
-                  delta_eta = delta_eta, pve = pve)
+                  delta_eta1 = delta_eta1, delta_eta2 = delta_eta2, pve = pve)
   return(members)
 }
 
