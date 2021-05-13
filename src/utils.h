@@ -14,8 +14,7 @@ arma::vec dmvnrm_arma_fast(arma::mat const &x,
                            arma::rowvec const &mean,  
                            arma::mat const &sigma, 
                            bool const logd);
-arma::vec delta_eta_diff(arma::mat& delta_eta1, arma::mat& delta_eta2,
-                    arma::mat& eta, arma::mat& beta, arma::mat& xi_eta,
-                    arma::uword nsub, arma::uword nreg, arma::uword ldim,
-                    arma::uword designdim, arma::mat& design);
+double get_delta_eta_density(arma::mat& delta_eta1, arma::mat& delta_eta2,
+                             arma::mat& eta, arma::mat& beta, arma::mat& xi_eta,
+                             arma::mat& design);
 #endif

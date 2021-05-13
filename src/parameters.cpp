@@ -83,8 +83,8 @@ ParametersWeak::ParametersWeak(const Data& dat, Rcpp::Nullable<Rcpp::List> init_
   xi_eta_container = arma::cube(dat.nsub * dat.nreg, dat.ldim, dat.iter);
   beta_container = arma::cube(dat.designdim * dat.nreg, dat.ldim, dat.iter);
   delta_beta_container = arma::cube(dat.nreg * dat.designdim, dat.ldim, dat.iter);
-  delta_eta1_container = arma::cube(dat.nreg, dat.c, dat.iter);
-  delta_eta2_container = arma::cube(dat.c, dat.ldim, dat.iter);
+  delta_eta1_container = arma::cube(dat.nreg, dat.cdim, dat.iter);
+  delta_eta2_container = arma::cube(dat.cdim, dat.ldim, dat.iter);
   a1_container = arma::vec(dat.iter);
   a2_container = arma::vec(dat.iter);
   nu_container = arma::vec(dat.iter);
@@ -241,70 +241,78 @@ void ParametersWeak::update_a123(const Data& dat) {
   
 }
 
-void ParametersWeak::update_delta_eta1(const Data& dat,
+void ParametersWeak::update_delta_eta1(Data& dat,
                                        TransformationsWeak& transf) {
-  double ndf, tmpsum;
-  arma::vec etavec, betavec, etamean;
-  arma::mat delta_eta_cumprod;
-  for (arma::uword r = 0; r < dat.nreg; r++) {
-    tmpsum = 0;
-    delta_eta1(r) = 1;
-    delta_eta_cumprod = arma::cumprod(delta_eta1) * 
-      arma::cumprod(delta_eta2).t();
-    for (arma::uword rp = r; rp < dat.nreg; rp++) {
-      arma::uvec r_ind = arma::regspace<arma::uvec>(rp, dat.nreg, (dat.nsub - 1) * dat.nreg + rp);
-      for (arma::uword l = 0; l < dat.ldim; l++) {
-        etavec = arma::vec(eta.col(l)).rows(r_ind);
-        betavec = arma::vec(beta.col(l)).rows(rp * dat.designdim, (rp + 1) * dat.designdim - 1);
-        etamean = dat.design * betavec;
-        tmpsum = tmpsum + delta_eta_cumprod(rp, l) * arma::as_scalar((etavec - etamean).t() *
-          arma::diagmat(arma::mat(xi_eta.col(l)).rows(r_ind)) * (etavec - etamean));
-      }
-    }
-    if (r == 0) {
-      ndf = a1 + .5 * dat.nsub * dat.nreg * dat.ldim;
-      delta_eta1(r) = R::rgamma(ndf, 1. / (1 + .5 * tmpsum));
-
-    } else {
-      ndf = a2 + .5 * dat.nsub * (dat.nreg - r) * dat.ldim;
-      delta_eta1(r) = R::rgamma(ndf, 1. / (1 + .5 * tmpsum));
-    }
-  }
-  transf.delta_eta_cumprod = arma::cumprod(delta_eta1) * 
-    arma::cumprod(delta_eta2).t();
-}
-
-void ParametersWeak::update_delta_eta2(const Data& dat,
-                                       TransformationsWeak& transf) {
-  double ndf, tmpsum;
-  arma::vec etavec, betavec, etamean;
-  arma::mat delta_eta_cumprod;
-  for (arma::uword l = 0; l < dat.ldim; l++) {
-    tmpsum = 0;
-    delta_eta2(l) = 1;
-    delta_eta_cumprod = arma::cumprod(delta_eta1) * 
-      arma::cumprod(delta_eta2).t();
+  double proposal, density_old, density_new, prior_old, prior_new, p1, p2;
+  double M1, M2;
+  double step_sigma = .025;
+  arma::mat d1 = delta_eta1;
+  for (arma::uword c = 0; c < dat.cdim; c++) {
     for (arma::uword r = 0; r < dat.nreg; r++) {
-      arma::uvec r_ind = arma::regspace<arma::uvec>(r, dat.nreg, (dat.nsub - 1) * dat.nreg + r);
-      for (arma::uword lp = l; lp < dat.ldim; lp++) {
-        etavec = arma::vec(eta.col(lp)).rows(r_ind);
-        betavec = arma::vec(beta.col(lp)).rows(r * dat.designdim, (r + 1) * dat.designdim - 1);
-        etamean = dat.design * betavec;
-        tmpsum = tmpsum + delta_eta_cumprod(r, lp) * arma::as_scalar((etavec - etamean).t() *
-          arma::diagmat(arma::mat(xi_eta.col(lp)).rows(r_ind)) * (etavec - etamean));
+      proposal = -1;
+      while (proposal <= 0) {
+        proposal = delta_eta1(r, c) + R::rnorm(0, step_sigma);
+      }
+      d1(r, c) = proposal;
+      density_old = get_delta_eta_density(delta_eta1, delta_eta2,
+                                          eta, beta, xi_eta, dat.design);
+      density_new = get_delta_eta_density(d1, delta_eta2,
+                                          eta, beta, xi_eta, dat.design);
+      if (r == 0) {
+        prior_old = R::dgamma(delta_eta1(r, c), a1, 1, true);
+        prior_new = R::dgamma(proposal, a1, 1, true);
+        
+      } else {
+        prior_old = R::dgamma(delta_eta1(r, c), a2, 1, true);
+        prior_old = R::dgamma(proposal, a2, 1, true);
+      }
+      p1 = R::pnorm(delta_eta1(r, c), 0, step_sigma, 1, 1);
+      p2 = R::pnorm5(proposal, 0, step_sigma, 1, 1);
+      M1 = density_old + prior_old - p1;
+      M2 = density_new + prior_new - p2;
+      if (R::runif(0, 1) < exp(M2 - M1)) {
+        delta_eta1(r, c) = proposal;
       }
     }
-    if (l == 0) {
-      ndf = a3 + .5 * dat.nsub * dat.nreg * dat.ldim;
-      delta_eta2(l) = R::rgamma(ndf, 1. / (1 + .5 * tmpsum));
-    } else {
-      ndf = a4 + .5 * dat.nsub * dat.nreg * (dat.ldim - l);
-      delta_eta2(l) = R::rgamma(ndf, 1. / (1 + .5 * tmpsum));
+  }
+}
+
+void ParametersWeak::update_delta_eta2(Data& dat,
+                                       TransformationsWeak& transf) {
+  double proposal, density_old, density_new, prior_old, prior_new, p1, p2;
+  double M1, M2;
+  double step_sigma = .025;
+  arma::mat d2 = delta_eta2;
+  for (arma::uword c = 0; c < dat.cdim; c++) {
+    for (arma::uword l = 0; l < dat.ldim; l++) {
+      proposal = -1;
+      while (proposal <= 0) {
+        proposal = delta_eta2(c, l) + R::rnorm(0, step_sigma);
+      }
+      d2(c, l) = proposal;
+      density_old = get_delta_eta_density(delta_eta1, delta_eta2,
+                                          eta, beta, xi_eta, dat.design);
+      density_new = get_delta_eta_density(delta_eta1, d2,
+                                          eta, beta, xi_eta, dat.design);
+      if (l == 0) {
+        prior_old = R::dgamma(delta_eta2(c, l), a3, 1, true);
+        prior_new = R::dgamma(proposal, a3, 1, true);
+        
+      } else {
+        prior_old = R::dgamma(delta_eta2(c, l), a4, 1, true);
+        prior_old = R::dgamma(proposal, a4, 1, true);
+      }
+      p1 = R::pnorm(delta_eta2(c, l), 0, step_sigma, 1, 1);
+      p2 = R::pnorm5(proposal, 0, step_sigma, 1, 1);
+      M1 = density_old + prior_old - p1;
+      M2 = density_new + prior_new - p2;
+      if (R::runif(0, 1) < exp(M2 - M1)) {
+        delta_eta2(c, l) = proposal;
+      }
     }
   }
-  transf.delta_eta_cumprod = arma::cumprod(delta_eta1) * 
-    arma::cumprod(delta_eta2).t();
 }
+
 
 void ParametersPartial::update_omega(
     const Data& dat, TransformationsPartial& transf) {

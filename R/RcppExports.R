@@ -52,7 +52,19 @@ run_mcmc <- function(response, design, basis, time, penalty, ldim, iter, burnin,
     .Call('_rbfda_run_mcmc', PACKAGE = 'rbfda', response, design, basis, time, penalty, ldim, iter, burnin, thin, init_, covstruct)
 }
 
-delta_eta_diff <- function(delta_eta1, delta_eta2, eta, beta, xi_eta, a1, a2, nsub, nreg, ldim, designdim, design) {
-    .Call('_rbfda_delta_eta_diff', PACKAGE = 'rbfda', delta_eta1, delta_eta2, eta, beta, xi_eta, a1, a2, nsub, nreg, ldim, designdim, design)
+get_delta_eta_density <- function(delta_eta1, delta_eta2, eta, beta, xi_eta, design) {
+    .Call('_rbfda_get_delta_eta_density', PACKAGE = 'rbfda', delta_eta1, delta_eta2, eta, beta, xi_eta, design)
+}
+
+get_delta_eta_proposal <- function(delta_eta1, delta_eta2) {
+    .Call('_rbfda_get_delta_eta_proposal', PACKAGE = 'rbfda', delta_eta1, delta_eta2)
+}
+
+get_delta_eta1_grad <- function(delta_eta1, delta_eta2, eta, beta, xi_eta, design, r, c) {
+    .Call('_rbfda_get_delta_eta1_grad', PACKAGE = 'rbfda', delta_eta1, delta_eta2, eta, beta, xi_eta, design, r, c)
+}
+
+get_delta_eta2_grad <- function(delta_eta1, delta_eta2, eta, beta, xi_eta, design, c, l) {
+    .Call('_rbfda_get_delta_eta2_grad', PACKAGE = 'rbfda', delta_eta1, delta_eta2, eta, beta, xi_eta, design, c, l)
 }
 

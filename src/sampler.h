@@ -44,11 +44,11 @@ public:
   SamplerWeak(Data& dat, Rcpp::Nullable<Rcpp::List>);
   void sample();
   void write_samples();
-  arma::vec get_grad();
-  arma::vec p;
+  arma::vec get_grad(arma::vec&);
+  arma::vec p, q;
   arma::mat leapfrog(arma::uword num_steps, double step_size);
   void update_delta_eta(arma::uword num_steps, double step_size);
-  arma::vec get_density();
+  double get_density(arma::vec& p);
   Rcpp::List get_samples();
   ~SamplerWeak() {}
 };

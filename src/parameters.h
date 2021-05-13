@@ -98,8 +98,8 @@ public:
   ParametersWeak() {}
   ParametersWeak(const Data& dat, Rcpp::Nullable<Rcpp::List> init_);
   void update_eta(const Data&, TransformationsWeak&);
-  void update_delta_eta1(const Data&, TransformationsWeak&);
-  void update_delta_eta2(const Data&, TransformationsWeak&);
+  void update_delta_eta1(Data&, TransformationsWeak&);
+  void update_delta_eta2(Data&, TransformationsWeak&);
   // void update_delta_eta(const Data&, Transformations&);
   void update_a123(const Data&);
   void update_lambda(const Data&, TransformationsWeak&);

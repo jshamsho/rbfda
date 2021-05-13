@@ -1,5 +1,6 @@
 library(mgcv)
 library(rbfda)
+library(numDeriv)
 source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/initialize_mcmc.R")
 source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/simulate_data.R")
 source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/testing.R")
@@ -20,7 +21,6 @@ basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2), data.frame(tt), ab
 B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
 init_mcmc <- initialize_mcmc_weak(sim_data$Y, tt, B, X, ldim = ldim)
-plot(init_mcmc$psi[,1])
 result <- run_mcmc(response = sim_data$Y, design = X, basis = B, time = tt,
                    penalty = penalty, ldim = ldim, iter = 5000, burnin = 1000,
                    thin = 1, init_ = init_mcmc, covstruct = "weak")
@@ -131,17 +131,384 @@ get_cumprod_coef <- function(input) {
   return(delta)
 }
 
-mynmf <- nmf(init_mcmc$prec_eta, rank = 3)
+mynmf <- nmf(init_mcmc$prec_eta, rank = 4, method = "lee")
+
 delta_eta1 <- basis(mynmf)
 delta_eta2 <- coef(mynmf)
+init_mcmc <- initialize_mcmc_weak(sim_data$Y, tt, B, X, ldim = ldim)
+get_delta_eta_density(init_mcmc$delta_eta1, init_mcmc$delta_eta2,
+                      init_mcmc$eta,
+                      init_mcmc$beta,
+                      init_mcmc$xi_eta, X)
+init_mcmc$delta_eta1
+init_mcmc$delta_eta2
+
 a_basis <- sqrt(delta_eta1[1,1] * delta_eta2[1,1]) / delta_eta1[1,1]
 a_coef <- sqrt(delta_eta1[1,1] * delta_eta2[1,1]) / delta_eta2[1,1]
 delta_eta1 <- a_basis * delta_eta1
 delta_eta2 <- a_coef * delta_eta2
-for (i in 1:3) {
+for (i in 1:4) {
   delta_eta1[,i] <- get_cumprod_coef(delta_eta1[,i])
   delta_eta2[i,] <- get_cumprod_coef(delta_eta2[i,])
 }
 xi_eta <- matrix(1, nreg * nsub, ldim)
-delta_eta_diff(delta_eta1, delta_eta2, init_mcmc$eta, init_mcmc$beta, xi_eta, nsub,
-               nreg, ldim, ndf, X)
+
+cdim <- 4
+delta_eta1_cumprod <- matrix(0, nreg, cdim)
+delta_eta2_cumprod <- matrix(0, cdim, ldim)
+for (c in 1:cdim) {
+  delta_eta1_cumprod[, c] <- cumprod(init_mcmc$delta_eta1[,c])
+  delta_eta2_cumprod[c, ] <- cumprod(init_mcmc$delta_eta2[c,])
+}
+full_var <- delta_eta1_cumprod %*% delta_eta2_cumprod
+print(full_var)
+
+get_density <- function(q) {
+  bigdim <- length(q)
+  density_vec <- numeric(bigdim)
+  cdim <- ncol(init_mcmc$delta_eta1)
+  delta_eta1 <- matrix(q[1:(nreg * cdim)], nreg, cdim)
+  delta_eta2 <- matrix(q[(nreg * cdim + 1):bigdim], cdim, ldim, byrow = TRUE)
+  delta_eta1_cumprod <- matrix(0, nreg, cdim)
+  delta_eta2_cumprod <- matrix(0, cdim, ldim)
+  for (c in 1:cdim) {
+    delta_eta1_cumprod[, c] <- cumprod(delta_eta1[,c])
+    delta_eta2_cumprod[c, ] <- cumprod(delta_eta2[c,])
+  }
+  full_var <- delta_eta1_cumprod %*% delta_eta2_cumprod
+  density <- 0
+  for (rp in 1:nreg) {
+    rseq <- seq(from = rp, by = nreg, length.out = nsub)
+    for (lp in 1:ldim) {
+      etavec <- init_mcmc$eta[rseq, lp]
+      betavec <- init_mcmc$beta[((rp - 1) * d + 1):(rp * d), lp]
+      etamean <- X %*% betavec
+      mysd <- full_var[rp, lp]^(-.5)
+      density <- density + sum(dnorm(etavec, etamean, sd = mysd, log = TRUE))
+      # density <- density + .5 * nsub * log(full_var[rp, lp]) -.5 *
+      # full_var[rp, lp] *
+      # t(etavec - etamean) %*% (etavec - etamean)
+    }
+  }
+  
+  return(-density)
+}
+q <- rep(1, min(ldim, nreg) * (nreg + ldim))
+get_density(q)
+z <- rnorm(35)
+.5 * z%*%z
+get_density_real <- function() {
+  density <- 0
+  for (r in 1:nreg) {
+    rseq <- seq(from = r, by = nreg, length.out = nsub)
+    for (l in 1:ldim) {
+      etavec <- init_mcmc$eta[rseq, l]
+      betavec <- init_mcmc$beta[((r - 1) * d + 1):(r * d), l]
+      etamean <- X %*% betavec
+      mysd <- init_mcmc$prec_eta[r, l]^(-.5)
+      density <- density + sum(dnorm(etavec, etamean, sd = mysd, log = TRUE))
+      
+    }
+  }
+  return(-density)
+}
+
+num_iters <- 200
+samples <- matrix(0, length(q), num_iters)
+densities <- numeric(num_iters)
+# q <- c(init_mcmc$delta_eta1, t(init_mcmc$delta_eta2))
+q <- rep(1, min(ldim, nreg) * (nreg + ldim))
+q_o <- q
+p_o <- rnorm(length(q), sd = sqrt(.1))
+for (iter in 1:num_iters) {
+  print(iter)
+  # p <- rnorm(length(q), sd = sqrt(.1))
+  p <- rnorm(1, sd = sqrt(.1))
+  # get_density_real()
+  step_size <- .01
+  for (i in 1:1) {
+    p <- p - step_size / 2 * numDeriv::grad(get_density, q, method = "Richardson")[1]
+    q[1] <- q[1] + step_size * p * .1
+    p <- p - step_size / 2 * numDeriv::grad(get_density, q, method = "Richardson")[1]
+  }
+  densities[iter] <- get_density(q)
+  if (runif(1) < exp(.1 * .5 * p %*% p - get_density(q) - .1 * .5 * p_o %*% p_o + get_density(q_o))) {
+    q_o <- q
+    p_o <- p
+  }
+  samples[, iter] <- q_o
+}
+plot(densities)
+full_var(samples[, 200])
+
+
+num_iters <- 25000
+samples <- matrix(0, length(q), num_iters)
+densities <- numeric(num_iters)
+MH_ratios <- numeric(num_iters)
+q <- rep(1, min(ldim, nreg) * (nreg + ldim))
+q0 <- q
+cdim <- min(ldim, nreg)
+bigdim <- length(q)
+for (iter in 1:num_iters) {
+  delta_eta1 <- matrix(q0[1:(nreg * cdim)], nreg, cdim)
+  delta_eta2 <- matrix(q0[(nreg * cdim + 1):bigdim], cdim, ldim, byrow = TRUE)
+  prop <- get_delta_eta_proposal(delta_eta1, delta_eta2)
+  q <- c(prop$delta_eta1, t(prop$delta_eta2))
+  MH_ratio <- exp(-get_density(q) + get_density(q0))
+  if (runif(1) < MH_ratio) {
+    q0 <- q
+  }
+  MH_ratios[iter] <- MH_ratio
+  densities[iter] <- get_density(q0)
+  samples[,iter] <- q0
+  print(densities[iter])
+  print(get_density(q))
+}
+plot(densities)
+full_var(samples[, 5000])
+print(-get_density(q))
+print(-get_density(q_o))
+dnorm(p, sd = sqrt(.1), log = TRUE) %>% sum()
+dnorm(p_o, sd = sqrt(.1), log = TRUE) %>% sum()
+q <- c(init_mcmc$delta_eta1, t(init_mcmc$delta_eta2))
+init_mcmc$xi_eta <- matrix(1, nsub * nreg, ldim)
+get_delta_eta1_grad(init_mcmc$delta_eta1, init_mcmc$delta_eta2, init_mcmc$eta, init_mcmc$beta, init_mcmc$xi_eta, X, 0, 0)
+numDeriv::grad(get_density, q)
+get_density(q + c(-.01, rep(0, length(q) - 1)))
+result <- run_mcmc(response = sim_data$Y, design = X, basis = B, time = tt,
+                   penalty = penalty, ldim = ldim, iter = 1, burnin = 1000,
+                   thin = 1, init_ = init_mcmc, covstruct = "weak")
+q <- c(init_mcmc$delta_eta1, t(init_mcmc$delta_eta2))
+get_density(q)
+prop <- get_delta_eta_proposal(init_mcmc$delta_eta1, init_mcmc$delta_eta2)
+q1 <- c(prop$delta_eta1_proposal, t(prop$delta_eta2_proposal))
+get_density(q1)
+full_var(q)
+full_var(q1)
+full_var <- function(q) {
+  r <- 1
+  l <- 1
+  c <- 1
+  bigdim <- length(q)
+  density_vec <- numeric(bigdim)
+  cdim <- ncol(init_mcmc$delta_eta1)
+  delta_eta1 <- matrix(q[1:(nreg * cdim)], nreg, cdim)
+  delta_eta2 <- matrix(q[(nreg * cdim + 1):bigdim], cdim, ldim, byrow = TRUE)
+  delta_eta1_cumprod <- matrix(0, nreg, cdim)
+  delta_eta2_cumprod <- matrix(0, cdim, ldim)
+  for (c in 1:cdim) {
+    delta_eta1_cumprod[, c] <- cumprod(delta_eta1[,c])
+    delta_eta2_cumprod[c, ] <- cumprod(delta_eta2[c,])
+  }
+  full_var <- delta_eta1_cumprod %*% delta_eta2_cumprod
+  return(full_var)
+}
+
+deriv_full_var <- function(q) {
+  r <- 1
+  l <- 1
+  c <- 1
+  bigdim <- length(q)
+  density_vec <- numeric(bigdim)
+  cdim <- ncol(init_mcmc$delta_eta1)
+  delta_eta1 <- matrix(q[1:(nreg * cdim)], nreg, cdim)
+  delta_eta2 <- matrix(q[(nreg * cdim + 1):bigdim], cdim, ldim, byrow = TRUE)
+  delta_eta1[2,1] <- 1
+  delta_eta1_cumprod <- matrix(0, nreg, cdim)
+  delta_eta2_cumprod <- matrix(0, cdim, ldim)
+  for (c in 1:cdim) {
+    delta_eta1_cumprod[, c] <- cumprod(delta_eta1[,c])
+    delta_eta2_cumprod[c, ] <- cumprod(delta_eta2[c,])
+  }
+  small_var <- delta_eta1_cumprod[,1] %*% t(delta_eta2_cumprod[1,])
+  return(small_var)
+}
+full_var(q)
+numDeriv::grad(full_var, q)[2]
+deriv_full_var(q)
+result <- run_mcmc(response = sim_data$Y, design = X, basis = B, time = tt,
+                   penalty = penalty, ldim = ldim, iter = 1, burnin = 1000,
+                   thin = 1, init_ = init_mcmc, covstruct = "weak")
+cdim <- min(ldim, nreg)
+num_iter <- 1000
+num_steps <- 1
+samples <- matrix(0, cdim * (nreg + ldim), num_iter)
+step_size <- .05
+# d1 <- init_mcmc$delta_eta1
+# d2 <- init_mcmc$delta_eta2
+d1_container <- array(0, dim = c(nreg, cdim, num_iter))
+d2_container <- array(0, dim = c(nreg, cdim, num_iter))
+d1 <- matrix(1, nreg, cdim)
+d2 <- matrix(1, cdim, ldim)
+d1_prop <- d1
+d2_prop <- d2
+p0 <- list()
+p0[[1]] <- matrix(rnorm(nreg * cdim, sd = .1), nreg, cdim)
+p0[[2]] <- matrix(rnorm(cdim * ldim, sd = .1), cdim, ldim)
+densities <- numeric(num_iter)
+for (iter in 1:num_iter) {
+  for (c in 1:cdim) {
+    for (r in 1:nreg) {
+      q <- d1[r, c]
+      p <- rnorm(1, sd = .1)
+      d1_prop <- d1
+      for (i in 1:num_steps) {
+        mygrad <- get_delta_eta1_grad(d1, d2,
+                                      init_mcmc$eta, init_mcmc$beta, init_mcmc$xi_eta, X, r - 1, c - 1)
+        p <- p - step_size / 2 * mygrad
+        q <- q + step_size * p * .1
+        d1_prop[r, c] <- q
+        mygrad <- get_delta_eta1_grad(d1_prop, d2,
+                                      init_mcmc$eta, init_mcmc$beta, init_mcmc$xi_eta, X, r - 1, c - 1)
+        p <- p - step_size / 2 * mygrad
+      }
+      p <- -p
+      density_original <- get_delta_eta_density(
+        d1, d2, init_mcmc$eta, init_mcmc$beta, init_mcmc$xi_eta, X)
+      density_new <- get_delta_eta_density(
+        d1_prop, d2, init_mcmc$eta, init_mcmc$beta, init_mcmc$xi_eta, X)
+      H_old <- .1 * .5 * p0[[1]][r, c]^2 + density_original
+      H_new <- .1 * .5 * p^2 + density_new
+      if (runif(1) < exp(H_old - H_new)) {
+        p0[[1]][r, c] <- p
+        d1[r, c] <- d1_prop[r, c]
+      }
+      d1_container[r, c, iter] <- d1[r, c]
+    }
+  }
+  
+  for (c in 1:cdim) {
+    for (l in 1:ldim) {
+      q <- d2[c, l]
+      p <- rnorm(1, sd = .1)
+      d2_prop <- d2
+      for (i in 1:num_steps) {
+        mygrad <- get_delta_eta1_grad(d1, d2,
+                                      init_mcmc$eta, init_mcmc$beta, init_mcmc$xi_eta, X, c - 1, l - 1)
+        p <- p - step_size / 2 * mygrad
+        q <- q + step_size * p * .1
+        d2_prop[c, l] <- q
+        mygrad <- get_delta_eta1_grad(d1, d2_prop,
+                                      init_mcmc$eta, init_mcmc$beta, init_mcmc$xi_eta, X, c - 1, l - 1)
+        p <- p - step_size / 2 * mygrad
+      }
+      p <- -p
+      density_original <- get_delta_eta_density(
+        d1, d2, init_mcmc$eta, init_mcmc$beta, init_mcmc$xi_eta, X)
+      density_new <- get_delta_eta_density(
+        d1, d2_prop, init_mcmc$eta, init_mcmc$beta, init_mcmc$xi_eta, X)
+      H_old <- .1 * .5 * p0[[2]][c, l]^2 + density_original
+      H_new <- .1 * .5 * p^2 + density_new
+      if (runif(1) < exp(H_old - H_new)) {
+        p0[[2]][c, l] <- p
+        d2[c, l] <- d2_prop[c, l]
+      }
+      d2_container[c, l, iter] <- d2[c, l]
+    }
+  }
+  
+  densities[iter] <- get_delta_eta_density(d1, d2,
+                                           init_mcmc$eta,
+                                           init_mcmc$beta,
+                                           init_mcmc$xi_eta, X)
+  print(densities[iter])
+}
+q0 <- c(init_mcmc$delta_eta1, t(init_mcmc$delta_eta2))
+full_var(q0)
+prec_mats <- array(0, dim = c(nreg, ldim, num_iter))
+for (i in 1:num_iter) {
+  q1 <- c(d1_container[,,i], t(d2_container[,,i]))
+  prec_mats[,,i] <- full_var(q1)
+}
+init_mcmc$prec_eta
+plot(prec_mats[1,1,], type = "l")
+get_delta_eta_density(init_mcmc$delta_eta1, init_mcmc$delta_eta2,
+                      init_mcmc$eta,
+                      init_mcmc$beta,
+                      init_mcmc$xi_eta, X)
+
+num_iter <- 5000
+samples <- matrix(0, cdim * (nreg + ldim), num_iter)
+d1_container <- array(0, dim = c(nreg, cdim, num_iter))
+d2_container <- array(0, dim = c(cdim, ldim, num_iter))
+d1 <- matrix(1, nreg, cdim)
+d2 <- matrix(1, cdim, ldim)
+d1_prop <- d1
+d2_prop <- d2
+densities <- numeric(num_iter)
+for (iter in 1:num_iter) {
+  for (c in 1:cdim) {
+    for (r in 1:nreg) {
+      q <- -1
+      while(q <= 0) {
+        q <- d1[r, c] + rnorm(1, .025)
+      }
+      d1_prop <- d1
+      d1_prop[r, c] <- q
+      density_original <- -get_delta_eta_density(
+        d1, d2, init_mcmc$eta, init_mcmc$beta, init_mcmc$xi_eta, X)
+      density_new <- -get_delta_eta_density(
+        d1_prop, d2, init_mcmc$eta, init_mcmc$beta, init_mcmc$xi_eta, X)
+      prior_original <- dgamma(d1[r, c], shape = 2, rate = 1, log = TRUE)
+      prior_new <- dgamma(d1_prop[r, c], shape = 2, rate = 1, log = TRUE)
+      p1 <- pnorm(d1[r, c])
+      p2 <- pnorm(d1_prop[r, c])
+      H_old <- density_original + prior_original - p1
+      H_new <- density_new + prior_new - p2
+      if (runif(1) < exp(H_new - H_old)) {
+        d1[r, c] <- d1_prop[r, c]
+      }
+      d1_container[r, c, iter] <- d1[r, c]
+    }
+  }
+  
+  for (c in 1:cdim) {
+    for (l in 1:ldim) {
+      q <- -1
+      while(q <= 0) {
+        q <- d2[c, l] + rnorm(1, .025)
+      }
+      d2_prop <- d2
+      d2_prop[c, l] <- q
+      density_original <- -get_delta_eta_density(
+        d1, d2, init_mcmc$eta, init_mcmc$beta, init_mcmc$xi_eta, X)
+      density_new <- -get_delta_eta_density(
+        d1, d2_prop, init_mcmc$eta, init_mcmc$beta, init_mcmc$xi_eta, X)
+      prior_original <- dgamma(d2[c, l], shape = 2, rate = 1, log = TRUE)
+      prior_new <- dgamma(d1_prop[c, l], shape = 2, rate = 1, log = TRUE)
+      p1 <- pnorm(d2[c, l])
+      p2 <- pnorm(d2_prop[c, l])
+      H_old <- density_original + prior_original - p1
+      H_new <- density_new + prior_new - p2
+      if (runif(1) < exp(H_new - H_old)) {
+        d2[c, l] <- d2_prop[c, l]
+      }
+      d2_container[c, l, iter] <- d2[c, l]
+    }
+  }
+  densities[iter] <- get_delta_eta_density(d1, d2,
+                                           init_mcmc$eta,
+                                           init_mcmc$beta,
+                                           init_mcmc$xi_eta, X)
+  print(densities[iter])
+}
+
+q0 <- c(init_mcmc$delta_eta1, t(init_mcmc$delta_eta2))
+full_var(q0)
+prec_mats <- array(0, dim = c(nreg, ldim, num_iter))
+for (i in 1:num_iter) {
+  q1 <- c(d1_container[,,i], t(d2_container[,,i]))
+  prec_mats[,,i] <- full_var(q1)
+}
+init_mcmc$prec_eta
+plot(1 / prec_mats[1,1,], type = "l")
+abline(h = 1 / init_mcmc$prec_eta[1,1])
+prec_mats[,,5000]
+get_delta_eta_density(init_mcmc$delta_eta1, init_mcmc$delta_eta2,
+                      init_mcmc$eta,
+                      init_mcmc$beta,
+                      init_mcmc$xi_eta, X)
+
+
+

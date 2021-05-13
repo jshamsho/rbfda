@@ -73,79 +73,163 @@ arma::vec dmvnrm_arma_fast(arma::mat const &x,
 //                                 arma::uword designdim, arma::mat& design) {
 //   
 // }
+
 // [[Rcpp::export]]
-arma::vec delta_eta_diff(arma::mat& delta_eta1, arma::mat& delta_eta2,
-                    arma::mat& eta, arma::mat& beta, arma::mat& xi_eta,
-                    double a1, double a2,
-                    arma::uword nsub, arma::uword nreg, arma::uword ldim,
-                    arma::uword designdim, arma::mat& design) {
-  arma::mat full_var = delta_eta1 * delta_eta2;
-  arma::mat small_var;
+double get_delta_eta_density(arma::mat& delta_eta1, arma::mat& delta_eta2,
+                         arma::mat& eta, arma::mat& beta, arma::mat& xi_eta,
+                         arma::mat& design) {
+  if (arma::any(arma::vectorise(delta_eta1) <= 0) || 
+      arma::any(arma::vectorise(delta_eta2) <= 0)) {
+    return(arma::datum::inf);
+  }
+  arma::uword d = design.n_cols;
+  arma::uword nreg = delta_eta1.n_rows;
+  arma::uword ldim = delta_eta2.n_cols;
+  arma::uword nsub = eta.n_rows / nreg;
+  arma::uword cdim = delta_eta1.n_cols;
+  arma::mat delta_eta1_cumprod = arma::mat(nreg, cdim);
+  arma::mat delta_eta2_cumprod = arma::mat(cdim, ldim);
+  for (arma::uword i = 0; i < cdim; i++) {
+    delta_eta1_cumprod.col(i) = arma::cumprod(delta_eta1.col(i));
+    delta_eta2_cumprod.row(i) = arma::cumprod(delta_eta2.row(i));
+  }
+  arma::mat full_var = delta_eta1_cumprod * delta_eta2_cumprod;  
   arma::vec etavec, betavec, etamean;
-  arma::vec grad_vec = arma::vec(delta_eta1.n_cols * (nreg + ldim));
-  double delta_prod, grad;
-  arma::vec delta_eta1_copy;
-  arma::rowvec delta_eta2_copy;
+  arma::vec density_vec = arma::vec(cdim * (nreg + ldim));
+  arma::vec sd = arma::vec(nsub);
+  double density = 0;
   for (arma::uword r = 0; r < nreg; r++) {
-    for (arma::uword c = 0; c < delta_eta1.n_cols; c++) {
-      delta_eta1_copy = delta_eta1.col(c);
-      delta_eta1_copy(r) = 1;
-      small_var = delta_eta1_copy * delta_eta2.row(c);
-      grad = 0;
-      for (arma::uword rp = r; rp < nreg; rp++) {
-        arma::uvec r_ind = arma::regspace<arma::uvec>(rp, nreg, (nsub - 1) * nreg + rp);
-        for (arma::uword lp = 0; lp < ldim; lp++) {
-          etavec = arma::vec(eta.col(lp)).rows(r_ind);
-          betavec = arma::vec(beta.col(lp)).rows(rp * designdim, (rp + 1) * designdim - 1);
-          etamean = design * betavec;
-          grad = grad + .5 * arma::as_scalar((etavec - etamean).t() *
-            arma::diagmat(arma::mat(xi_eta.col(lp)).rows(r_ind)) * 
-            (etavec - etamean)) * (1 / full_var(rp, lp)) * small_var(rp, lp) - 
-            .5 * nsub * 1 / full_var(rp, lp) * small_var(rp, lp);
-        }
-      }
-      double delta = arma::as_scalar(delta_eta1.col(c).row(r));
-      if (r == 0) {
-        grad = grad + log(delta) * (a1 - 1) - 
-          delta;
-      } else {
-        grad = grad + log(delta) * (a2 - 1) - 
-          delta;
-      }
-      grad_vec.row(r + nreg * c) = -grad;
+    arma::uvec r_ind = arma::regspace<arma::uvec>(r, nreg, (nsub - 1) * nreg + r);
+    for (arma::uword l = 0; l < ldim; l++) {
+      etavec = arma::vec(eta.col(l)).rows(r_ind);
+      betavec = arma::vec(beta.col(l)).rows(r * d, (r + 1) * d - 1);
+      etamean = design * betavec;
+      sd = arma::pow(arma::mat(xi_eta.col(l)).rows(r_ind) * full_var(r, l), -.5);
+      density = density + arma::accu(arma::log_normpdf(etavec, etamean, sd));
     }
   }
-  for (arma::uword l = 0; l < ldim; l++) {
-    for (arma::uword c = 0; c < delta_eta1.n_cols; c++) {
-      delta_eta2_copy = delta_eta2.row(c);
-      delta_eta2_copy.col(l) = 1;
-      small_var = delta_eta1.col(c) * delta_eta2_copy;
-      grad = 0;
-      for (arma::uword rp = 0; rp < nreg; rp++) {
-        arma::uvec r_ind = arma::regspace<arma::uvec>(rp, nreg, (nsub - 1) * nreg + rp);
-        for (arma::uword lp = l; lp < ldim; lp++) {
-          etavec = arma::vec(eta.col(lp)).rows(r_ind);
-          betavec = arma::vec(beta.col(lp)).rows(rp * designdim, (rp + 1) * designdim - 1);
-          etamean = design * betavec;
-          grad = grad + .5 * arma::as_scalar((etavec - etamean).t() *
-            arma::diagmat(arma::mat(xi_eta.col(lp)).rows(r_ind)) * 
-            (etavec - etamean)) * (1 / full_var(rp, lp)) * small_var(rp, lp) -
-            .5 * nsub * 1 / full_var(rp, lp) * small_var(rp, lp);
-        }
-      }
-      double delta = arma::as_scalar(delta_eta2.row(c).col(l));
-      if (l == 0) {
-        grad = grad + log(delta) * (a1 - 1) - 
-          delta;
-      } else {
-        grad = grad + log(delta) * (a2 - 1) - 
-          delta;
-      }
-      grad_vec(delta_eta1.n_cols * nreg + c * ldim + l) = -grad;
+  for (arma::uword c = 0; c < cdim; c++) {
+    for (arma::uword r = 0; r < nreg; r++) {
+      density = density + R::dgamma(delta_eta1(r, c), 2, 1, true);
+    }
+    for (arma::uword l = 0; l < ldim; l++) {
+      density = density + R::dgamma(delta_eta2(c, l), 2, 1, true);
     }
   }
-  return(grad_vec);
+  // density = density + R::dgamma(arma::as_scalar(delta_eta1.col(c).row(r)),)
+  return(-density);
 }
+
+// [[Rcpp::export]]
+Rcpp::List get_delta_eta_proposal(arma::mat& delta_eta1, arma::mat& delta_eta2) {
+  arma::uword nreg = delta_eta1.n_rows;
+  arma::uword ldim = delta_eta2.n_cols;
+  arma::uword cdim = delta_eta1.n_cols;
+  arma::mat delta_eta1_proposal = arma::mat(nreg, cdim);
+  arma::mat delta_eta2_proposal = arma::mat(cdim, ldim);
+  double prop;
+  for (arma::uword c = 0; c < cdim; c++) {
+    for (arma::uword r = 0; r < nreg; r++) {
+      prop = -1;
+      while(prop <= 0) {
+        prop = delta_eta1(r, c) + .000005 * R::rnorm(0, 1);
+      }
+      delta_eta1_proposal(r, c) = prop;
+    }
+    for (arma::uword l = 0; l < ldim; l++) {
+      prop = -1;
+      while(prop <= 0) {
+        prop = delta_eta2(c, l) + .25 * R::rnorm(0, 1);
+      }
+      delta_eta2_proposal(c, l) = prop;
+    }
+  }
+  return(Rcpp::List::create(Rcpp::Named("delta_eta1_proposal", delta_eta1_proposal),
+                            Rcpp::Named("delta_eta2_proposal", delta_eta2_proposal)));
+}
+
+// [[Rcpp::export]]
+double get_delta_eta1_grad(arma::mat& delta_eta1, arma::mat& delta_eta2,
+                          arma::mat& eta, arma::mat& beta, arma::mat& xi_eta,
+                          arma::mat& design, arma::uword r, arma::uword c) {
+  
+  arma::vec etavec, betavec, etamean;
+  arma::uword nreg = delta_eta1.n_rows;
+  arma::uword ldim = delta_eta2.n_cols;
+  arma::uword nsub = eta.n_rows / nreg;
+  arma::uword cdim = delta_eta1.n_cols;
+  arma::uword d = design.n_cols;
+  arma::mat delta_eta1_cumprod = arma::mat(nreg, cdim);
+  arma::mat delta_eta2_cumprod = arma::mat(cdim, ldim);
+  arma::vec delta_eta1_copy;
+  delta_eta1_copy = delta_eta1.col(c);
+  delta_eta1_copy(r) = 1;
+  for (arma::uword i = 0; i < cdim; i++) {
+    delta_eta1_cumprod.col(i) = arma::cumprod(delta_eta1.col(i));
+    delta_eta2_cumprod.row(i) = arma::cumprod(delta_eta2.row(i));
+  }
+  arma::mat full_var = delta_eta1_cumprod * delta_eta2_cumprod;
+  arma::mat small_var = arma::cumprod(delta_eta1_copy) * arma::cumprod(delta_eta2.row(c));
+  double grad = 0;
+  for (arma::uword rp = r; rp < nreg; rp++) {
+    arma::uvec r_ind = arma::regspace<arma::uvec>(rp, nreg, (nsub - 1) * nreg + rp);
+    for (arma::uword lp = 0; lp < ldim; lp++) {
+      etavec = arma::vec(eta.col(lp)).rows(r_ind);
+      betavec = arma::vec(beta.col(lp)).rows(rp * d, (rp + 1) * d - 1);
+      etamean = design * betavec;
+      grad = grad + .5 * nsub * 1 / full_var(rp, lp) * small_var(rp, lp) -
+                    .5 * arma::as_scalar((etavec - etamean).t() * 
+      arma::diagmat(arma::vec(xi_eta.col(lp)).rows(r_ind)) *
+      (etavec - etamean)) * small_var(rp, lp);
+    }
+  }
+  grad = grad + (2 - 1) / delta_eta1(r, c) - 1;
+  // double delta = arma::as_scalar(delta_eta1.col(c).row(r));
+  return(-grad);
+  
+}
+
+// [[Rcpp::export]]
+double get_delta_eta2_grad(arma::mat& delta_eta1, arma::mat& delta_eta2,
+                           arma::mat& eta, arma::mat& beta, arma::mat& xi_eta,
+                           arma::mat& design, arma::uword c, arma::uword l) {
+  
+  arma::vec etavec, betavec, etamean;
+  arma::uword nreg = delta_eta1.n_rows;
+  arma::uword ldim = delta_eta2.n_cols;
+  arma::uword nsub = eta.n_rows / nreg;
+  arma::uword cdim = delta_eta1.n_cols;
+  arma::uword d = design.n_cols;
+  arma::mat delta_eta1_cumprod = arma::mat(nreg, cdim);
+  arma::mat delta_eta2_cumprod = arma::mat(cdim, ldim);
+  arma::vec delta_eta2_copy;
+  delta_eta2_copy = delta_eta2.row(c);
+  delta_eta2_copy(l) = 1;
+  for (arma::uword i = 0; i < cdim; i++) {
+    delta_eta1_cumprod.col(i) = arma::cumprod(delta_eta1.col(i));
+    delta_eta2_cumprod.row(i) = arma::cumprod(delta_eta2.row(i));
+  }
+  arma::mat full_var = delta_eta1_cumprod * delta_eta2_cumprod;
+  arma::mat small_var = arma::cumprod(delta_eta1.col(c)) * arma::cumprod(delta_eta2_copy);
+  double grad = 0;
+  for (arma::uword rp = 0; rp < nreg; rp++) {
+    arma::uvec r_ind = arma::regspace<arma::uvec>(rp, nreg, (nsub - 1) * nreg + rp);
+    for (arma::uword lp = l; lp < ldim; lp++) {
+      etavec = arma::vec(eta.col(lp)).rows(r_ind);
+      betavec = arma::vec(beta.col(lp)).rows(rp * d, (rp + 1) * d - 1);
+      etamean = design * betavec;
+      grad = grad + .5 * nsub * 1 / full_var(rp, lp) * small_var(rp, lp) -
+                    .5 * arma::as_scalar((etavec - etamean).t() * 
+      arma::diagmat(arma::vec(xi_eta.col(lp)).rows(r_ind)) *
+      (etavec - etamean)) * small_var(rp, lp);
+    }
+  }
+  grad = grad + (2 - 1) / delta_eta2(c, l) - 1;
+  // double delta = arma::as_scalar(delta_eta1.col(c).row(r));
+  return(-grad);
+  
+}
+
 // 
 // arma::mat leapfrog(arma::vec q, arma::vec p, arma::vec grad,
 //                    arma::uword steps, double step_size) {
