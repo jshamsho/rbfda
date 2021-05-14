@@ -8,8 +8,7 @@ Transformations::Transformations(Data& dat, Parameters& pars) {
   psi = dat.basis * pars.lambda;
   ones_mat = arma::ones<arma::mat>(dat.ldim, dat.ldim);
   psi_lin_constr = arma::zeros(dat.ldim, dat.basisdim);
-  delta_eta_cumprod = arma::mat(dat.nreg, dat.ldim);
-  
+
   for (arma::uword i = 0; i < dat.nsub; i++) {
     bty.rows(i * dat.basisdim, (i + 1) * dat.basisdim - 1) = dat.basis.t() * 
       dat.response.rows(i * dat.nt, (i + 1) * dat.nt - 1);
@@ -67,11 +66,6 @@ void TransformationsPartial::initialize_fit(Data& dat, ParametersPartial& pars) 
         pars.phi.slice(l).col(r).t();
     }
   }
-  delta_eta_cumprod.col(0) = arma::cumprod(pars.delta_eta.col(0));
-  for (arma::uword l = 1; l < dat.ldim; l++) {
-    delta_eta_cumprod.col(l) = arma::cumprod(pars.delta_eta.col(l)) * 
-      delta_eta_cumprod_init(l - 1);
-  }
   C_rho = pars.alpha * pars.rho * ones_mat + pars.alpha * (1 - pars.rho) * arma::eye(dat.ldim, dat.ldim);
 }
 
@@ -86,7 +80,6 @@ void TransformationsWeak::initialize_fit(Data& dat, ParametersWeak& pars) {
   arma::uword last = dat.nt - 1;
   arma::uword first_eta = 0;
   arma::uword last_eta = dat.nreg - 1;
-  delta_eta_cumprod = pars.delta_eta1 * pars.delta_eta2.t();
   for (arma::uword i = 0; i < dat.nsub; i++) {
     first = i * dat.nt;
     last = (i + 1) * dat.nt - 1;

@@ -230,6 +230,51 @@ double get_delta_eta2_grad(arma::mat& delta_eta1, arma::mat& delta_eta2,
   
 }
 
+void compute_sigmasqeta_weak(arma::mat& delta_eta1,
+                        arma::mat& delta_eta2,
+                        arma::mat& sigmasqeta) {
+  arma::uword cdim = delta_eta1.n_cols;
+  arma::uword nreg = delta_eta1.n_rows;
+  arma::uword ldim = delta_eta2.n_cols;
+  arma::mat delta_eta1_cumprod = arma::mat(nreg, cdim);
+  arma::mat delta_eta2_cumprod = arma::mat(cdim, ldim);
+  for (arma::uword i = 0; i < cdim; i++) {
+    delta_eta1_cumprod.col(i) = arma::cumprod(delta_eta1.col(i));
+    delta_eta2_cumprod.row(i) = arma::cumprod(delta_eta2.row(i));
+  }
+  sigmasqeta = delta_eta1_cumprod * delta_eta2_cumprod;
+}
+
+void compute_sigmasqeta_partial(arma::mat& delta_eta, arma::mat& sigmasqeta) {
+  arma::rowvec init; 
+  arma::uword ldim = delta_eta.n_cols;
+  init = arma::cumprod(delta_eta.row(0));
+  for (arma::uword l = 0; l < ldim; l++) {
+    sigmasqeta.col(l) = arma::cumprod(delta_eta.col(l));
+    if (l > 0) {
+      sigmasqeta.col(l) = sigmasqeta.col(l) *
+        init(l - 1);
+    }
+  }
+}
+
+void compute_sigmasqetai(arma::mat& sigmasqeta,
+                              arma::mat& xi_eta,
+                              arma::mat& sigmasqetai) {
+  arma::uword nreg = sigmasqeta.n_rows;
+  arma::uword ldim = sigmasqeta.n_cols;
+  arma::uword nsub = xi_eta.n_rows / nreg;
+  arma::uword idx;
+  for (arma::uword i = 0; i < nsub; i++) {
+    for (arma::uword l = 0; l < ldim; l++) {
+      for (arma::uword r = 0; r < nreg; r++) {
+        idx = i * nreg + r;
+        sigmasqetai(idx, l) = xi_eta(idx, l) * sigmasqeta(r, l);
+      }
+    }
+  }
+}
+
 // 
 // arma::mat leapfrog(arma::vec q, arma::vec p, arma::vec grad,
 //                    arma::uword steps, double step_size) {

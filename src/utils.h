@@ -17,4 +17,11 @@ arma::vec dmvnrm_arma_fast(arma::mat const &x,
 double get_delta_eta_density(arma::mat& delta_eta1, arma::mat& delta_eta2,
                              arma::mat& eta, arma::mat& beta, arma::mat& xi_eta,
                              arma::mat& design);
+void compute_sigmasqeta_weak(arma::mat& delta_eta1,
+                        arma::mat& delta_eta2,
+                        arma::mat& sigmasqeta);
+void compute_sigmasqeta_partial(arma::mat& delta_eta, arma::mat& sigmasqeta);
+void compute_sigmasqetai(arma::mat& sigmasqeta,
+                         arma::mat& xi_eta,
+                         arma::mat& sigmasqetai);
 #endif

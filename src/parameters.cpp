@@ -61,6 +61,8 @@ ParametersPartial::ParametersPartial(const Data& dat, Rcpp::Nullable<Rcpp::List>
     rho = 0.5;
     alpha = 1;
   }
+  compute_sigmasqeta_partial(delta_eta, sigmasqeta);
+  compute_sigmasqetai(sigmasqeta, xi_eta, sigmasqetai);
   posterior_omega_shape = dat.nt * dat.nsub / 2. + prior_shape;
   zeta = arma::vec(dat.ldim, arma::fill::ones);
   sigmasqeta = arma::mat(dat.nreg, dat.ldim, arma::fill::ones);
@@ -119,6 +121,9 @@ ParametersWeak::ParametersWeak(const Data& dat, Rcpp::Nullable<Rcpp::List> init_
     }
     eta = Rcpp::as<arma::mat>(eta_);
   }
+  compute_sigmasqeta_weak(delta_eta1, delta_eta2, sigmasqeta);
+  compute_sigmasqetai(sigmasqeta, xi_eta, sigmasqetai);
+  
 }
 
 void ParametersWeak::update_eta(
@@ -275,6 +280,8 @@ void ParametersWeak::update_delta_eta1(Data& dat,
       }
     }
   }
+  compute_sigmasqeta_weak(delta_eta1, delta_eta1, sigmasqeta);
+  compute_sigmasqetai(sigmasqeta, xi_eta, sigmasqetai);
 }
 
 void ParametersWeak::update_delta_eta2(Data& dat,
@@ -311,6 +318,8 @@ void ParametersWeak::update_delta_eta2(Data& dat,
       }
     }
   }
+  compute_sigmasqeta_weak(delta_eta1, delta_eta1, sigmasqeta);
+  compute_sigmasqetai(sigmasqeta, xi_eta, sigmasqetai);
 }
 
 
@@ -360,15 +369,6 @@ void ParametersPartial::update_eta(const Data& dat, Transformations& transf) {
   arma::uword first, last, first_eta, last_eta;
   arma::vec b, yt, eta_temp;
   arma::mat Q, beta_mat, diagsigma, diagomega = arma::diagmat(omega);
-  // transf.fit.zeros();
-  for (arma::uword i = 0; i < dat.nsub; i++) {
-    for (arma::uword l = 0; l < dat.ldim; l++) {
-      for (arma::uword r = 0; r < dat.nreg; r++) {
-        idx = i * dat.nreg + r;
-        sigmasqetai(idx, l) = xi_eta(idx, l) * transf.delta_eta_cumprod(r, l);
-      }
-    }
-  }
   b = arma::vec(dat.nreg, arma::fill::zeros);
   for (arma::uword i = 0; i < dat.nsub; i++) {
     first = i * dat.nt, last = (i + 1) * dat.nt - 1;
@@ -393,32 +393,23 @@ void Parameters::update_xi_eta(const Data& dat, Transformations& transf) {
       for (arma::uword i = 0; i < dat.nsub; i++) {
         idx = i * dat.nreg + r;
         rate = nu / 2. + 
-                     .5 * std::pow(eta(idx, l), 2) * transf.delta_eta_cumprod(r, l);
+                     .5 * std::pow(eta(idx, l), 2) * sigmasqeta(r, l);
         xi_eta(idx, l) = R::rgamma(shape, 1. / rate);
       }
     }
   }
+  compute_sigmasqetai(sigmasqeta, xi_eta, sigmasqetai);
 }
 
 void ParametersPartial::update_delta_eta(const Data& dat, Transformations& transf) {
   double tmpsum, ndf;
-  arma::mat delta_eta_cumprod;
   arma::vec etavec, etavecr, betavec, betavecr, etamean;
-  delta_eta_cumprod = arma::mat(dat.nreg, dat.ldim);
-  arma::rowvec delta_eta_cumprod_init;
   
   //////////////
 
   tmpsum = 0;
   delta_eta(0, 0) = 1;
-  delta_eta_cumprod_init = arma::cumprod(delta_eta.row(0));
-  for (arma::uword l = 0; l < dat.ldim; l++) {
-    delta_eta_cumprod.col(l) = arma::cumprod(delta_eta.col(l));
-    if (l > 0) {
-      delta_eta_cumprod.col(l) = delta_eta_cumprod.col(l) *
-        delta_eta_cumprod_init(l - 1);
-    }
-  }
+  compute_sigmasqeta_partial(delta_eta, sigmasqeta);
   for (arma::uword r = 0; r < dat.nreg; r++) {
     arma::uvec r_ind = arma::regspace<arma::uvec>(r, dat.nreg, (dat.nsub - 1) * dat.nreg + r);
     for (arma::uword l = 0; l < dat.ldim; l++) {
@@ -427,7 +418,7 @@ void ParametersPartial::update_delta_eta(const Data& dat, Transformations& trans
       betavec = beta.col(l);
       betavecr = betavec.rows(r * dat.designdim, (r + 1) * dat.designdim - 1);
       etamean = dat.design * betavecr;
-      tmpsum = tmpsum + delta_eta_cumprod(r, l) * arma::as_scalar((etavecr - etamean).t() *
+      tmpsum = tmpsum + sigmasqeta(r, l) * arma::as_scalar((etavecr - etamean).t() *
         arma::diagmat(arma::mat(xi_eta.col(l)).rows(r_ind)) * (etavecr - etamean));
     }
   }
@@ -439,14 +430,7 @@ void ParametersPartial::update_delta_eta(const Data& dat, Transformations& trans
   for (arma::uword l = 1; l < dat.ldim; l++) {
     tmpsum = 0;
     delta_eta(0, l) = 1;
-  delta_eta_cumprod_init = arma::cumprod(delta_eta.row(0));
-    for (arma::uword lp = 0; lp < dat.ldim; lp++) {
-      delta_eta_cumprod.col(lp) = arma::cumprod(delta_eta.col(lp));
-      if (lp > 0) {
-        delta_eta_cumprod.col(lp) = delta_eta_cumprod.col(lp) *
-          delta_eta_cumprod_init(lp - 1);
-      }
-    }
+    compute_sigmasqeta_partial(delta_eta, sigmasqeta);
     for (arma::uword rp = 0; rp < dat.nreg; rp++) {
       arma::uvec r_ind = arma::regspace<arma::uvec>(rp, dat.nreg, (dat.nsub - 1) * dat.nreg + rp);
       for (arma::uword lp = l; lp < dat.ldim; lp++) {
@@ -455,7 +439,7 @@ void ParametersPartial::update_delta_eta(const Data& dat, Transformations& trans
         betavec = beta.col(lp);
         betavecr = betavec.rows(rp * dat.designdim, (rp + 1) * dat.designdim - 1);
         etamean = dat.design * betavecr;
-        tmpsum = tmpsum + delta_eta_cumprod(rp, lp) * arma::as_scalar((etavecr - etamean).t() *
+        tmpsum = tmpsum + sigmasqeta(rp, lp) * arma::as_scalar((etavecr - etamean).t() *
           arma::diagmat(arma::mat(xi_eta.col(lp)).rows(r_ind)) * (etavecr - etamean));
       }
     }
@@ -468,13 +452,7 @@ void ParametersPartial::update_delta_eta(const Data& dat, Transformations& trans
   for (arma::uword l = 0; l < dat.ldim; l++) {
     for (arma::uword r = 1; r < dat.nreg; r++) {
       tmpsum = 0;
-      delta_eta(r, l) = 1;
-      delta_eta_cumprod_init = arma::cumprod(delta_eta.row(0));
-      delta_eta_cumprod.col(0) = arma::cumprod(delta_eta.col(0));
-      for (arma::uword lp = 1; lp < dat.ldim; lp++) {
-        delta_eta_cumprod.col(lp) = arma::cumprod(delta_eta.col(lp)) *
-          delta_eta_cumprod_init(lp - 1);
-      }
+      compute_sigmasqeta_partial(delta_eta, sigmasqeta);
       for (arma::uword rp = r; rp < dat.nreg; rp++) {
         arma::uvec r_ind = arma::regspace<arma::uvec>(rp, dat.nreg, (dat.nsub - 1) * dat.nreg + rp);
         etavec = eta.col(l);
@@ -482,7 +460,7 @@ void ParametersPartial::update_delta_eta(const Data& dat, Transformations& trans
         betavec = beta.col(l);
         betavecr = betavec.rows(rp * dat.designdim, (rp + 1) * dat.designdim - 1);
         etamean = dat.design * betavecr;
-        tmpsum = tmpsum + delta_eta_cumprod(rp, l) * arma::as_scalar((etavecr - etamean).t() *
+        tmpsum = tmpsum + sigmasqeta(rp, l) * arma::as_scalar((etavecr - etamean).t() *
           arma::diagmat(arma::mat(xi_eta.col(l)).rows(r_ind)) * (etavecr - etamean));
       }
       ndf = a3 + .5 * dat.nsub * (dat.nreg - r);
@@ -492,12 +470,7 @@ void ParametersPartial::update_delta_eta(const Data& dat, Transformations& trans
   
   //////////////
   
-  delta_eta_cumprod_init = arma::cumprod(delta_eta.row(0));
-  transf.delta_eta_cumprod.col(0) = arma::cumprod(delta_eta.col(0));
-  for (arma::uword l = 1; l < dat.ldim; l++) {
-    transf.delta_eta_cumprod.col(l) = arma::cumprod(delta_eta.col(l)) * 
-      delta_eta_cumprod_init(l - 1);
-  }
+  compute_sigmasqeta_partial(delta_eta, sigmasqeta);
 }
 
 void Parameters::update_beta(const Data& dat, Transformations& transf) {
@@ -516,7 +489,6 @@ void Parameters::update_beta(const Data& dat, Transformations& transf) {
       Q = dat.design.t() * sig_eta * dat.design + db;
       b = dat.design.t() * (sig_eta * eta_vec);
       beta.col(l).rows(first, last) = bayesreg(b, Q);
-      arma::vec(transf.fit_eta.col(l)).rows(r_ind) = dat.design * beta.col(l).rows(first, last);
     }
   }
 }
@@ -603,7 +575,6 @@ void ParametersPartial::update_phi(const Data& dat, TransformationsPartial& tran
   eta_sum = arma::zeros(dat.ldim, dat.ldim);
   // C_inv = arma::inv_sympd(transf.C_rho);
   diag_r = arma::eye(dat.nreg, dat.nreg);
-  transf.fit.zeros();
   arma::uvec constr_indices;
   arma::mat tmprm = arma::vec(dat.ldim * dat.nreg);
   arma::mat tmpad = arma::vec(dat.ldim * dat.nreg);
@@ -660,7 +631,6 @@ void ParametersPartial::update_phi(const Data& dat, TransformationsPartial& tran
                     -arma::vec(beta.col(l)).rows(r * dat.designdim,
                                (r + 1) * dat.designdim - 1);
         arma::vec(eta.col(l)).rows(r_ind) = -arma::vec(eta.col(l)).rows(r_ind);
-        arma::vec(transf.fit_eta.col(l)).rows(r_ind) = -arma::vec(transf.fit_eta.col(l)).rows(r_ind);
       }
     }
   }
