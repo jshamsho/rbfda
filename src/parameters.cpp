@@ -107,25 +107,25 @@ ParametersWeak::ParametersWeak(const Data& dat, Rcpp::Nullable<Rcpp::List> init_
     Rcpp::NumericMatrix beta_ = init["beta"];
     Rcpp::NumericVector omega_ = init["omega"];
     Rcpp::NumericMatrix lambda_ = init["lambda"];
-    Rcpp::NumericMatrix delta_eta1_ = init["delta_eta1"];
-    Rcpp::NumericMatrix delta_eta2_ = init["delta_eta2"];
+    // Rcpp::NumericMatrix delta_eta1_ = init["delta_eta1"];
+    // Rcpp::NumericMatrix delta_eta2_ = init["delta_eta2"];
     Rcpp::NumericMatrix sigmasqeta_ = init["prec_eta"];
     Rcpp::NumericMatrix eta_ = init["eta"];
     phi = Rcpp::as<arma::mat>(phi_);
     beta = Rcpp::as<arma::mat>(beta_);
     omega = Rcpp::as<arma::vec>(omega_);
     lambda = Rcpp::as<arma::mat>(lambda_);
-    delta_eta1 = Rcpp::as<arma::mat>(delta_eta1_);
-    delta_eta2 = Rcpp::as<arma::mat>(delta_eta2_);
-    arma::vec tmp1;
-    arma::rowvec tmp2;
-    for (arma::uword c = 0; c < dat.cdim; c++) {
-      tmp1 = delta_eta1.col(c);
-      tmp2 = delta_eta2.row(c);
-      delta_eta1.col(c) = identify_delta1(tmp1);
-      delta_eta2.row(c) = identify_delta2(tmp2);
-      
-    }
+    // delta_eta1 = Rcpp::as<arma::mat>(delta_eta1_);
+    // delta_eta2 = Rcpp::as<arma::mat>(delta_eta2_);
+    // arma::vec tmp1;
+    // arma::rowvec tmp2;
+    // for (arma::uword c = 0; c < dat.cdim; c++) {
+    //   tmp1 = delta_eta1.col(c);
+    //   tmp2 = delta_eta2.row(c);
+    //   delta_eta1.col(c) = identify_delta1(tmp1);
+    //   delta_eta2.row(c) = identify_delta2(tmp2);
+    //   
+    // }
     sigmasqeta = Rcpp::as<arma::mat>(sigmasqeta_);
     for (arma::uword i = 0; i < dat.nsub; i++) {
       sigmasqetai.rows(i * dat.nreg, (i + 1) * dat.nreg - 1) = sigmasqeta;

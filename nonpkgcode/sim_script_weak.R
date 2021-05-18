@@ -1,16 +1,15 @@
 library(mgcv)
-library(rbfda)
-library(numDeriv)
-source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/initialize_mcmc.R")
-source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/simulate_data.R")
-source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/testing.R")
+library(rrbfda)
+# source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/initialize_mcmc.R")
+# source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/simulate_data.R")
+# source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/testing.R")
 
-nsub <- 200
-nt <- 30
-nreg <- 3
+nsub <- 100
+nt <- 60
+nreg <- 5
 ldim <- 4
 d <- 2
-ndf <- 10
+ndf <- 30
 tt <- seq(from = 0, to = 1, length.out = nt)
 sim_data <- sim_weak(nt, nsub, nreg, ldim)
 sim_data <- sim_partial(nt, nsub, nreg, ldim)
@@ -76,7 +75,7 @@ for (i in 500:5000) {
   lines(tt, meanf)
 }
 
-efunc <- 3
+efunc <- 1
 plot(B %*% result$samples$lambda[,efunc,100], type = "l", ylim = c(-.5,.5))
 evec <- numeric(5000)
 for (i in 500:5000) {
@@ -87,10 +86,10 @@ lines(sim_data$psi[,efunc], col = "red")
 lines(init_mcmc$psi[,efunc], col = "green")
 lines(B %*% apply(result$samples$lambda[,efunc,],1,mean), col = "blue")
 sum((init_mcmc$psi[,efunc] - sim_data$psi[,efunc])^2)
-sum((B %*% apply(result$samples$lambda[,efunc,], 1, median) - sim_data$psi[,efunc])^2)
+sum((B %*% apply(result$samples$lambda[,efunc,], 1, mean) - sim_data$psi[,efunc])^2)
 
-r <- 1
-i <- 6
+r <- 2
+i <- 110
 plot(sim_data$Y[((i - 1) * nt + 1):(i * nt),r])
 seqr <- ((i - 1) * nreg + 1):(i * nreg)
 for (i in 201:5000) {
@@ -117,8 +116,20 @@ quantile(1 / delta_eta_cumprod[r,l,1000:num_iter], c(.025, .975))
 ((ldim - l + 1) * 1 / r)^2
 
 
-
-
+num_iter <- 5000
+l <- 4
+r <- 3
+plot(1 / result$samples$sigmasqeta[r,l,], type = "l")
+abline(h = 1 / init_mcmc$prec_eta[r,l])
+abline(h = ((ldim - l + 1) * 1 / r)^2, col = "red")
+1 / init_mcmc$prec_eta[r, l]
+quantile(1 / result$samples$sigmasqeta[r,l,1:num_iter], c(.025, .975))
+((ldim - l + 1) * 1 / r)^2
+shape_param <- 1 + .5 * result$samples$eta[seqr,1,5000] %*% result$samples$eta[seqr,1,5000]
+rate_param <- 1 + .5 * nsub
+rgamma(1, shape = shape_param, rate = rate_param)
+seqr <- seq(from = r, by = nreg, length.out = nsub)
+var(result$samples$eta[seqr,l,1])
 
 
 
@@ -641,3 +652,42 @@ full_var(q0)
 full_var(q1)
 
 
+library("future")
+plan(multicore)
+
+myfun <- function() {
+  future(fun2())
+  
+  return(1+1)
+}
+
+## Use multicore futures
+plan(multicore, workers = availableCores() - 1)
+# devtools::install_github("hathawayj/buildings")
+library(buildings) # remember that the 'permits' data object is created when the library is loaded.
+a <- 4
+ff <- function(x){
+  for (i in 1:1000){
+    i
+  }
+  
+  ggplot() + geom_point(x = permits[x, "value"])
+}
+list_object <- as.list(1:7500)
+tic()
+temp1 <- map(list_object, ff)
+toc()
+
+
+tic()
+temp1 <- future_map(list_object, ff)
+toc()
+
+z_func <- function(seed) {
+  set.seed(seed)
+  print(rnorm(1))
+}
+z_func(2)
+library(future.apply)
+plan(multicore)
+future_lapply(1:4, z_func, future.seed = TRUE)

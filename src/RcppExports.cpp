@@ -8,7 +8,7 @@ using namespace Rcpp;
 
 // get_pval
 double get_pval(arma::mat eta, arma::uword nreg, arma::uword ldim);
-RcppExport SEXP _rbfda_get_pval(SEXP etaSEXP, SEXP nregSEXP, SEXP ldimSEXP) {
+RcppExport SEXP _rrbfda_get_pval(SEXP etaSEXP, SEXP nregSEXP, SEXP ldimSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -21,7 +21,7 @@ END_RCPP
 }
 // reshape_nreg
 arma::mat reshape_nreg(arma::mat eta, arma::uword nsub, arma::uword nreg);
-RcppExport SEXP _rbfda_reshape_nreg(SEXP etaSEXP, SEXP nsubSEXP, SEXP nregSEXP) {
+RcppExport SEXP _rrbfda_reshape_nreg(SEXP etaSEXP, SEXP nsubSEXP, SEXP nregSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -34,7 +34,7 @@ END_RCPP
 }
 // postcheck
 Rcpp::List postcheck(Rcpp::List mcmc, arma::uword refdist_samples);
-RcppExport SEXP _rbfda_postcheck(SEXP mcmcSEXP, SEXP refdist_samplesSEXP) {
+RcppExport SEXP _rrbfda_postcheck(SEXP mcmcSEXP, SEXP refdist_samplesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -44,52 +44,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// rcpparma_hello_world
-arma::mat rcpparma_hello_world();
-RcppExport SEXP _rbfda_rcpparma_hello_world() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(rcpparma_hello_world());
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcpparma_outerproduct
-arma::mat rcpparma_outerproduct(const arma::colvec& x);
-RcppExport SEXP _rbfda_rcpparma_outerproduct(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::colvec& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpparma_outerproduct(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcpparma_innerproduct
-double rcpparma_innerproduct(const arma::colvec& x);
-RcppExport SEXP _rbfda_rcpparma_innerproduct(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::colvec& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpparma_innerproduct(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcpparma_bothproducts
-Rcpp::List rcpparma_bothproducts(const arma::colvec& x);
-RcppExport SEXP _rbfda_rcpparma_bothproducts(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::colvec& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpparma_bothproducts(x));
-    return rcpp_result_gen;
-END_RCPP
-}
 // run_mcmc
 Rcpp::List run_mcmc(arma::mat response, arma::mat design, arma::mat basis, arma::vec time, arma::mat penalty, arma::uword ldim, arma::uword iter, arma::uword burnin, arma::uword thin, Rcpp::Nullable<Rcpp::List> init_, std::string covstruct);
-RcppExport SEXP _rbfda_run_mcmc(SEXP responseSEXP, SEXP designSEXP, SEXP basisSEXP, SEXP timeSEXP, SEXP penaltySEXP, SEXP ldimSEXP, SEXP iterSEXP, SEXP burninSEXP, SEXP thinSEXP, SEXP init_SEXP, SEXP covstructSEXP) {
+RcppExport SEXP _rrbfda_run_mcmc(SEXP responseSEXP, SEXP designSEXP, SEXP basisSEXP, SEXP timeSEXP, SEXP penaltySEXP, SEXP ldimSEXP, SEXP iterSEXP, SEXP burninSEXP, SEXP thinSEXP, SEXP init_SEXP, SEXP covstructSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -110,7 +67,7 @@ END_RCPP
 }
 // get_delta_eta_density
 double get_delta_eta_density(arma::mat& delta_eta1, arma::mat& delta_eta2, arma::mat& eta, arma::mat& beta, arma::mat& xi_eta, arma::mat& design);
-RcppExport SEXP _rbfda_get_delta_eta_density(SEXP delta_eta1SEXP, SEXP delta_eta2SEXP, SEXP etaSEXP, SEXP betaSEXP, SEXP xi_etaSEXP, SEXP designSEXP) {
+RcppExport SEXP _rrbfda_get_delta_eta_density(SEXP delta_eta1SEXP, SEXP delta_eta2SEXP, SEXP etaSEXP, SEXP betaSEXP, SEXP xi_etaSEXP, SEXP designSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -126,7 +83,7 @@ END_RCPP
 }
 // get_delta_eta_proposal
 Rcpp::List get_delta_eta_proposal(arma::mat& delta_eta1, arma::mat& delta_eta2);
-RcppExport SEXP _rbfda_get_delta_eta_proposal(SEXP delta_eta1SEXP, SEXP delta_eta2SEXP) {
+RcppExport SEXP _rrbfda_get_delta_eta_proposal(SEXP delta_eta1SEXP, SEXP delta_eta2SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -138,7 +95,7 @@ END_RCPP
 }
 // get_delta_eta1_grad
 double get_delta_eta1_grad(arma::mat& delta_eta1, arma::mat& delta_eta2, arma::mat& eta, arma::mat& beta, arma::mat& xi_eta, arma::mat& design, arma::uword r, arma::uword c);
-RcppExport SEXP _rbfda_get_delta_eta1_grad(SEXP delta_eta1SEXP, SEXP delta_eta2SEXP, SEXP etaSEXP, SEXP betaSEXP, SEXP xi_etaSEXP, SEXP designSEXP, SEXP rSEXP, SEXP cSEXP) {
+RcppExport SEXP _rrbfda_get_delta_eta1_grad(SEXP delta_eta1SEXP, SEXP delta_eta2SEXP, SEXP etaSEXP, SEXP betaSEXP, SEXP xi_etaSEXP, SEXP designSEXP, SEXP rSEXP, SEXP cSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -156,7 +113,7 @@ END_RCPP
 }
 // get_delta_eta2_grad
 double get_delta_eta2_grad(arma::mat& delta_eta1, arma::mat& delta_eta2, arma::mat& eta, arma::mat& beta, arma::mat& xi_eta, arma::mat& design, arma::uword c, arma::uword l);
-RcppExport SEXP _rbfda_get_delta_eta2_grad(SEXP delta_eta1SEXP, SEXP delta_eta2SEXP, SEXP etaSEXP, SEXP betaSEXP, SEXP xi_etaSEXP, SEXP designSEXP, SEXP cSEXP, SEXP lSEXP) {
+RcppExport SEXP _rrbfda_get_delta_eta2_grad(SEXP delta_eta1SEXP, SEXP delta_eta2SEXP, SEXP etaSEXP, SEXP betaSEXP, SEXP xi_etaSEXP, SEXP designSEXP, SEXP cSEXP, SEXP lSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -174,7 +131,7 @@ END_RCPP
 }
 // compute_delta_eta_density_c
 double compute_delta_eta_density_c(arma::mat& delta_eta1, arma::mat& delta_eta2, arma::mat& eta, arma::mat& beta, arma::mat& xi_eta, arma::mat& design, arma::uword c, double a1, double a2, double a3, double a4);
-RcppExport SEXP _rbfda_compute_delta_eta_density_c(SEXP delta_eta1SEXP, SEXP delta_eta2SEXP, SEXP etaSEXP, SEXP betaSEXP, SEXP xi_etaSEXP, SEXP designSEXP, SEXP cSEXP, SEXP a1SEXP, SEXP a2SEXP, SEXP a3SEXP, SEXP a4SEXP) {
+RcppExport SEXP _rrbfda_compute_delta_eta_density_c(SEXP delta_eta1SEXP, SEXP delta_eta2SEXP, SEXP etaSEXP, SEXP betaSEXP, SEXP xi_etaSEXP, SEXP designSEXP, SEXP cSEXP, SEXP a1SEXP, SEXP a2SEXP, SEXP a3SEXP, SEXP a4SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -195,7 +152,7 @@ END_RCPP
 }
 // identify_delta1
 arma::vec identify_delta1(arma::vec& input);
-RcppExport SEXP _rbfda_identify_delta1(SEXP inputSEXP) {
+RcppExport SEXP _rrbfda_identify_delta1(SEXP inputSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -206,7 +163,7 @@ END_RCPP
 }
 // identify_delta2
 arma::rowvec identify_delta2(arma::rowvec& input);
-RcppExport SEXP _rbfda_identify_delta2(SEXP inputSEXP) {
+RcppExport SEXP _rrbfda_identify_delta2(SEXP inputSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -217,7 +174,7 @@ END_RCPP
 }
 // gam_trunc_left
 double gam_trunc_left(double a, double b, double cut);
-RcppExport SEXP _rbfda_gam_trunc_left(SEXP aSEXP, SEXP bSEXP, SEXP cutSEXP) {
+RcppExport SEXP _rrbfda_gam_trunc_left(SEXP aSEXP, SEXP bSEXP, SEXP cutSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -230,26 +187,22 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_rbfda_get_pval", (DL_FUNC) &_rbfda_get_pval, 3},
-    {"_rbfda_reshape_nreg", (DL_FUNC) &_rbfda_reshape_nreg, 3},
-    {"_rbfda_postcheck", (DL_FUNC) &_rbfda_postcheck, 2},
-    {"_rbfda_rcpparma_hello_world", (DL_FUNC) &_rbfda_rcpparma_hello_world, 0},
-    {"_rbfda_rcpparma_outerproduct", (DL_FUNC) &_rbfda_rcpparma_outerproduct, 1},
-    {"_rbfda_rcpparma_innerproduct", (DL_FUNC) &_rbfda_rcpparma_innerproduct, 1},
-    {"_rbfda_rcpparma_bothproducts", (DL_FUNC) &_rbfda_rcpparma_bothproducts, 1},
-    {"_rbfda_run_mcmc", (DL_FUNC) &_rbfda_run_mcmc, 11},
-    {"_rbfda_get_delta_eta_density", (DL_FUNC) &_rbfda_get_delta_eta_density, 6},
-    {"_rbfda_get_delta_eta_proposal", (DL_FUNC) &_rbfda_get_delta_eta_proposal, 2},
-    {"_rbfda_get_delta_eta1_grad", (DL_FUNC) &_rbfda_get_delta_eta1_grad, 8},
-    {"_rbfda_get_delta_eta2_grad", (DL_FUNC) &_rbfda_get_delta_eta2_grad, 8},
-    {"_rbfda_compute_delta_eta_density_c", (DL_FUNC) &_rbfda_compute_delta_eta_density_c, 11},
-    {"_rbfda_identify_delta1", (DL_FUNC) &_rbfda_identify_delta1, 1},
-    {"_rbfda_identify_delta2", (DL_FUNC) &_rbfda_identify_delta2, 1},
-    {"_rbfda_gam_trunc_left", (DL_FUNC) &_rbfda_gam_trunc_left, 3},
+    {"_rrbfda_get_pval", (DL_FUNC) &_rrbfda_get_pval, 3},
+    {"_rrbfda_reshape_nreg", (DL_FUNC) &_rrbfda_reshape_nreg, 3},
+    {"_rrbfda_postcheck", (DL_FUNC) &_rrbfda_postcheck, 2},
+    {"_rrbfda_run_mcmc", (DL_FUNC) &_rrbfda_run_mcmc, 11},
+    {"_rrbfda_get_delta_eta_density", (DL_FUNC) &_rrbfda_get_delta_eta_density, 6},
+    {"_rrbfda_get_delta_eta_proposal", (DL_FUNC) &_rrbfda_get_delta_eta_proposal, 2},
+    {"_rrbfda_get_delta_eta1_grad", (DL_FUNC) &_rrbfda_get_delta_eta1_grad, 8},
+    {"_rrbfda_get_delta_eta2_grad", (DL_FUNC) &_rrbfda_get_delta_eta2_grad, 8},
+    {"_rrbfda_compute_delta_eta_density_c", (DL_FUNC) &_rrbfda_compute_delta_eta_density_c, 11},
+    {"_rrbfda_identify_delta1", (DL_FUNC) &_rrbfda_identify_delta1, 1},
+    {"_rrbfda_identify_delta2", (DL_FUNC) &_rrbfda_identify_delta2, 1},
+    {"_rrbfda_gam_trunc_left", (DL_FUNC) &_rrbfda_gam_trunc_left, 3},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_rbfda(DllInfo *dll) {
+RcppExport void R_init_rrbfda(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

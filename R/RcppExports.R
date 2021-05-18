@@ -2,32 +2,15 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 get_pval <- function(eta, nreg, ldim) {
-    .Call('_rbfda_get_pval', PACKAGE = 'rbfda', eta, nreg, ldim)
+    .Call('_rrbfda_get_pval', PACKAGE = 'rrbfda', eta, nreg, ldim)
 }
 
 reshape_nreg <- function(eta, nsub, nreg) {
-    .Call('_rbfda_reshape_nreg', PACKAGE = 'rbfda', eta, nsub, nreg)
+    .Call('_rrbfda_reshape_nreg', PACKAGE = 'rrbfda', eta, nsub, nreg)
 }
 
 postcheck <- function(mcmc, refdist_samples = 10000L) {
-    .Call('_rbfda_postcheck', PACKAGE = 'rbfda', mcmc, refdist_samples)
-}
-
-#' @export
-rcpparma_hello_world <- function() {
-    .Call('_rbfda_rcpparma_hello_world', PACKAGE = 'rbfda')
-}
-
-rcpparma_outerproduct <- function(x) {
-    .Call('_rbfda_rcpparma_outerproduct', PACKAGE = 'rbfda', x)
-}
-
-rcpparma_innerproduct <- function(x) {
-    .Call('_rbfda_rcpparma_innerproduct', PACKAGE = 'rbfda', x)
-}
-
-rcpparma_bothproducts <- function(x) {
-    .Call('_rbfda_rcpparma_bothproducts', PACKAGE = 'rbfda', x)
+    .Call('_rrbfda_postcheck', PACKAGE = 'rrbfda', mcmc, refdist_samples)
 }
 
 #' Run Markov-Chain Monte-Carlo
@@ -49,38 +32,38 @@ rcpparma_bothproducts <- function(x) {
 #' @export run_mcmc
 #' @return A List containing 3 lists including data, control, and samples.
 run_mcmc <- function(response, design, basis, time, penalty, ldim, iter, burnin, thin = 1L, init_ = NULL, covstruct = "partial") {
-    .Call('_rbfda_run_mcmc', PACKAGE = 'rbfda', response, design, basis, time, penalty, ldim, iter, burnin, thin, init_, covstruct)
+    .Call('_rrbfda_run_mcmc', PACKAGE = 'rrbfda', response, design, basis, time, penalty, ldim, iter, burnin, thin, init_, covstruct)
 }
 
 get_delta_eta_density <- function(delta_eta1, delta_eta2, eta, beta, xi_eta, design) {
-    .Call('_rbfda_get_delta_eta_density', PACKAGE = 'rbfda', delta_eta1, delta_eta2, eta, beta, xi_eta, design)
+    .Call('_rrbfda_get_delta_eta_density', PACKAGE = 'rrbfda', delta_eta1, delta_eta2, eta, beta, xi_eta, design)
 }
 
 get_delta_eta_proposal <- function(delta_eta1, delta_eta2) {
-    .Call('_rbfda_get_delta_eta_proposal', PACKAGE = 'rbfda', delta_eta1, delta_eta2)
+    .Call('_rrbfda_get_delta_eta_proposal', PACKAGE = 'rrbfda', delta_eta1, delta_eta2)
 }
 
 get_delta_eta1_grad <- function(delta_eta1, delta_eta2, eta, beta, xi_eta, design, r, c) {
-    .Call('_rbfda_get_delta_eta1_grad', PACKAGE = 'rbfda', delta_eta1, delta_eta2, eta, beta, xi_eta, design, r, c)
+    .Call('_rrbfda_get_delta_eta1_grad', PACKAGE = 'rrbfda', delta_eta1, delta_eta2, eta, beta, xi_eta, design, r, c)
 }
 
 get_delta_eta2_grad <- function(delta_eta1, delta_eta2, eta, beta, xi_eta, design, c, l) {
-    .Call('_rbfda_get_delta_eta2_grad', PACKAGE = 'rbfda', delta_eta1, delta_eta2, eta, beta, xi_eta, design, c, l)
+    .Call('_rrbfda_get_delta_eta2_grad', PACKAGE = 'rrbfda', delta_eta1, delta_eta2, eta, beta, xi_eta, design, c, l)
 }
 
 compute_delta_eta_density_c <- function(delta_eta1, delta_eta2, eta, beta, xi_eta, design, c, a1, a2, a3, a4) {
-    .Call('_rbfda_compute_delta_eta_density_c', PACKAGE = 'rbfda', delta_eta1, delta_eta2, eta, beta, xi_eta, design, c, a1, a2, a3, a4)
+    .Call('_rrbfda_compute_delta_eta_density_c', PACKAGE = 'rrbfda', delta_eta1, delta_eta2, eta, beta, xi_eta, design, c, a1, a2, a3, a4)
 }
 
 identify_delta1 <- function(input) {
-    .Call('_rbfda_identify_delta1', PACKAGE = 'rbfda', input)
+    .Call('_rrbfda_identify_delta1', PACKAGE = 'rrbfda', input)
 }
 
 identify_delta2 <- function(input) {
-    .Call('_rbfda_identify_delta2', PACKAGE = 'rbfda', input)
+    .Call('_rrbfda_identify_delta2', PACKAGE = 'rrbfda', input)
 }
 
 gam_trunc_left <- function(a, b, cut) {
-    .Call('_rbfda_gam_trunc_left', PACKAGE = 'rbfda', a, b, cut)
+    .Call('_rrbfda_gam_trunc_left', PACKAGE = 'rrbfda', a, b, cut)
 }
 

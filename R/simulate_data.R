@@ -1,3 +1,4 @@
+#' @export
 sim_weak <- function(nt, nsub, nreg, ldim = 4) {
   tt <- seq(from = 0, to = 1, length.out = nt)
   eta <- matrix(0, nsub * nreg, ldim)
@@ -60,6 +61,7 @@ sim_weak <- function(nt, nsub, nreg, ldim = 4) {
   return(sim_data)
 }
 
+#' @export
 sim_partial <- function(nt, nsub, nreg, ldim = 4) {
   tt <- seq(from = 0, to = 1, length.out = nt)
   eta <- matrix(0, nsub * nreg, ldim)
@@ -112,10 +114,11 @@ sim_partial <- function(nt, nsub, nreg, ldim = 4) {
       diag(((ldim - l + 1) / (1:nreg))^2) %*%
       t(phi[,,l])
   }
-  sim_data <- list(Y = Y, psi = psi, theta = theta, Sigma = Sigma)
+  sim_data <- list(Y = Y, psi = psi, theta = theta, Sigma = Sigma, phi = phi)
   return(sim_data)
 }
 
+#' @export
 sim_partial_cs <- function(nt, nsub, nreg, ldim, rho1 = .6) {
   tt <- seq(from = 0, to = 1, length.out = nt)
   sqexp <- function(t, tp) {
@@ -151,6 +154,7 @@ sim_partial_cs <- function(nt, nsub, nreg, ldim, rho1 = .6) {
   sim_data <- list(Y = Y, psi = psi, theta = theta, Sigma = Sigma)
 }
 
+#' @export
 sim_non_partial <- function(nt, nsub, nreg, ldim = 4, rho1 = .6, rho2 = .2) {
   tt <- seq(from = 0, to = 1, length.out = nt)
   sqexp <- function(t, tp) {

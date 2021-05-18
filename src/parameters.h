@@ -2,7 +2,6 @@
 #define PARAMETERS_H
 
 #include <RcppArmadillo.h>
-#include <truncnorm.h>
 #include "data.h"
 #include "transformations.h"
 

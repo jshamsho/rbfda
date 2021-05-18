@@ -142,8 +142,8 @@ void SamplerWeak::write_samples() {
   pars.lambda_container.slice(pars.current_iter) = pars.lambda;
   pars.beta_container.slice(pars.current_iter) = pars.beta;
   pars.delta_beta_container.slice(pars.current_iter) = pars.delta_beta;
-  pars.delta_eta1_container.slice(pars.current_iter) = pars.delta_eta1;
-  pars.delta_eta2_container.slice(pars.current_iter) = pars.delta_eta2;
+  // pars.delta_eta1_container.slice(pars.current_iter) = pars.delta_eta1;
+  // pars.delta_eta2_container.slice(pars.current_iter) = pars.delta_eta2;
   pars.omega_container.col(pars.current_iter) = pars.omega;
   pars.xi_eta_container.slice(pars.current_iter) = pars.xi_eta;
   pars.zeta_container.col(pars.current_iter) = pars.zeta;
@@ -151,10 +151,10 @@ void SamplerWeak::write_samples() {
   pars.phi_container.slice(pars.current_iter) = pars.phi;
   pars.sigmasqetai_container.slice(pars.current_iter) = pars.sigmasqetai;
   pars.nu_container(pars.current_iter) = pars.nu;
-  pars.a1_container(pars.current_iter) = pars.a1;
-  pars.a2_container(pars.current_iter) = pars.a2;
-  pars.a3_container(pars.current_iter) = pars.a3;
-  pars.a4_container(pars.current_iter) = pars.a4;
+  // pars.a1_container(pars.current_iter) = pars.a1;
+  // pars.a2_container(pars.current_iter) = pars.a2;
+  // pars.a3_container(pars.current_iter) = pars.a3;
+  // pars.a4_container(pars.current_iter) = pars.a4;
   pars.nu_container(pars.current_iter) = pars.nu;
   pars.sigmasqeta_container.slice(pars.current_iter) = pars.sigmasqeta;
   pars.current_iter++;
@@ -164,19 +164,12 @@ Rcpp::List SamplerWeak::get_samples() {
   return Rcpp::List::create(Rcpp::Named("lambda", pars.lambda_container),
                             Rcpp::Named("beta", pars.beta_container),
                             Rcpp::Named("delta_beta", pars.delta_beta_container),
-                            Rcpp::Named("delta_eta1", pars.delta_eta1_container),
-                            Rcpp::Named("delta_eta2", pars.delta_eta2_container),
                             Rcpp::Named("eta", pars.eta_container),
                             Rcpp::Named("omega", pars.omega_container),
                             Rcpp::Named("xi_eta", pars.xi_eta_container),
                             Rcpp::Named("zeta", pars.zeta_container),
                             Rcpp::Named("phi", pars.phi_container),
                             Rcpp::Named("sigmasqetai", pars.sigmasqetai_container),
-                            Rcpp::Named("nu", pars.nu_container),
-                            Rcpp::Named("a1", pars.a1_container),
-                            Rcpp::Named("a2", pars.a2_container),
-                            Rcpp::Named("a3", pars.a3_container),
-                            Rcpp::Named("a4", pars.a4_container),
                             Rcpp::Named("sigmasqeta", pars.sigmasqeta_container),
                             Rcpp::Named("fit", transf.fit));
 }

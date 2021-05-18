@@ -1,24 +1,24 @@
-\name{rbfda-package}
-\alias{rbfda-package}
-\alias{rbfda}
+\name{rrbfda-package}
+\alias{rrbfda-package}
+\alias{rrbfda}
 \docType{package}
 \title{
-\packageTitle{rbfda}
+\packageTitle{rrbfda}
 }
 \description{
-\packageDescription{rbfda}
+\packageDescription{rrbfda}
 }
 \details{
 
 The DESCRIPTION file:
-\packageDESCRIPTION{rbfda}
-\packageIndices{rbfda}
+\packageDESCRIPTION{rrbfda}
+\packageIndices{rrbfda}
 ~~ An overview of how to use the package, including the most important functions ~~
 }
 \author{
-\packageAuthor{rbfda}
+\packageAuthor{rrbfda}
 
-Maintainer: \packageMaintainer{rbfda}
+Maintainer: \packageMaintainer{rrbfda}
 }
 \references{
 ~~ Literature or other references for background information ~~

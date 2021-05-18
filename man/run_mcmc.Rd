@@ -4,7 +4,19 @@
 \alias{run_mcmc}
 \title{Run Markov-Chain Monte-Carlo}
 \usage{
-run_mcmc(response, design, basis, time, penalty, ldim, iter, burnin, thin = 1L)
+run_mcmc(
+  response,
+  design,
+  basis,
+  time,
+  penalty,
+  ldim,
+  iter,
+  burnin,
+  thin = 1L,
+  init_ = NULL,
+  covstruct = "partial"
+)
 }
 \arguments{
 \item{response}{N x T response matrix, where N is number of subjects and T is number

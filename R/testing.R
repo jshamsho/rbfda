@@ -60,6 +60,7 @@ normald <- function(x, nreg, ldim) {
   return(pnorm(q, lower.tail = TRUE))
 }
 
+#' @export
 get_pvals_partial <- function(result, func = normald) {
   iters <- result$control$iterations
   burnin <- result$control$burnin + 1
