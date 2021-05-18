@@ -5,12 +5,12 @@ source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/initialize_m
 source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/simulate_data.R")
 source("/Users/johnshamshoian/Documents/R_projects/rbfda/nonpkgcode/testing.R")
 
-nsub <- 100
-nt <- 60
-nreg <- 7
+nsub <- 200
+nt <- 30
+nreg <- 3
 ldim <- 4
 d <- 2
-ndf <- 15
+ndf <- 10
 tt <- seq(from = 0, to = 1, length.out = nt)
 sim_data <- sim_weak(nt, nsub, nreg, ldim)
 sim_data <- sim_partial(nt, nsub, nreg, ldim)
@@ -24,6 +24,7 @@ init_mcmc <- initialize_mcmc_weak(sim_data$Y, tt, B, X, ldim = ldim)
 result <- run_mcmc(response = sim_data$Y, design = X, basis = B, time = tt,
                    penalty = penalty, ldim = ldim, iter = 5000, burnin = 1000,
                    thin = 1, init_ = init_mcmc, covstruct = "weak")
+
 cumprod(result$samples$delta_eta1[,5000]) %*% t(cumprod(result$samples$delta_eta2[,5000]))
 cumprod(init_mcmc$delta_eta1) %*% t(cumprod(init_mcmc$delta_eta2))
 init_mcmc$prec_eta
@@ -75,21 +76,21 @@ for (i in 500:5000) {
   lines(tt, meanf)
 }
 
-efunc <- 1
-plot(B %*% result$samples$lambda[,efunc,100], type = "l")
+efunc <- 3
+plot(B %*% result$samples$lambda[,efunc,100], type = "l", ylim = c(-.5,.5))
 evec <- numeric(5000)
-for (i in 1000:5000) {
+for (i in 500:5000) {
   lines(B %*% result$samples$lambda[,efunc,i])
   evec[i] <- (B %*% result$samples$lambda[,efunc,i])[30]
 }
-lines(-sim_data$psi[,efunc], col = "red")
+lines(sim_data$psi[,efunc], col = "red")
 lines(init_mcmc$psi[,efunc], col = "green")
 lines(B %*% apply(result$samples$lambda[,efunc,],1,mean), col = "blue")
 sum((init_mcmc$psi[,efunc] - sim_data$psi[,efunc])^2)
 sum((B %*% apply(result$samples$lambda[,efunc,], 1, median) - sim_data$psi[,efunc])^2)
 
-r <- 5
-i <- 3
+r <- 1
+i <- 6
 plot(sim_data$Y[((i - 1) * nt + 1):(i * nt),r])
 seqr <- ((i - 1) * nreg + 1):(i * nreg)
 for (i in 201:5000) {
@@ -99,18 +100,20 @@ for (i in 201:5000) {
   lines(est, col = "blue")
 }
 
-delta_eta_cumprod <- array(0, dim = c(nreg, ldim, 5000))
-for (i in 1:5000) {
-  delta_eta_cumprod[,,i] <- cumprod(result$samples$delta_eta1[,i]) %*% 
-    t(cumprod(result$samples$delta_eta2[,i]))
+num_iter <- 5000
+delta_eta_cumprod <- array(0, dim = c(nreg, ldim, num_iter))
+for (i in 1:num_iter) {
+  q <- c(result$samples$delta_eta1[,,i], t(result$samples$delta_eta2[,,i]))
+  
+  delta_eta_cumprod[,,i] <- full_var(q)
 }
 r <- 1
 l <- 1
-plot(1 / delta_eta_cumprod[r,l,201:5000])
+plot(1 / delta_eta_cumprod[r,l,1:num_iter], type = "l")
 abline(h = 1 / init_mcmc$prec_eta[r,l])
 abline(h = ((ldim - l + 1) * 1 / r)^2, col = "red")
 1 / init_mcmc$prec_eta[r, l]
-quantile(1 / delta_eta_cumprod[r,l,1:5000], c(.025, .975))
+quantile(1 / delta_eta_cumprod[r,l,1000:num_iter], c(.025, .975))
 ((ldim - l + 1) * 1 / r)^2
 
 
@@ -505,10 +508,136 @@ init_mcmc$prec_eta
 plot(1 / prec_mats[1,1,], type = "l")
 abline(h = 1 / init_mcmc$prec_eta[1,1])
 prec_mats[,,5000]
+init_mcmc$xi_eta <- matrix(1, nreg * nsub, ldim)
 get_delta_eta_density(init_mcmc$delta_eta1, init_mcmc$delta_eta2,
                       init_mcmc$eta,
                       init_mcmc$beta,
                       init_mcmc$xi_eta, X)
 
+get_delta_eta_density(init_mcmc$delta_eta1, init_mcmc$delta_eta2,
+                      init_mcmc$eta, init_mcmc$beta, init_mcmc$xi_eta, X)
+get_delta_eta_density(init_mcmc$delta_eta1, init_mcmc$delta_eta2,
+                      result$samples$eta[,,1000], result$samples$beta[,,1000], result$samples$xi_eta[,,1000], X)
+get_delta_eta_density(result$samples$delta_eta1[,,1000], result$samples$delta_eta2[,,1000],
+                      result$samples$eta[,,1000], result$samples$beta[,,1000], result$samples$xi_eta[,,1000], X)
+q0 <- c(init_mcmc$delta_eta1, t(init_mcmc$delta_eta2))
+
+q1 <- c(result$samples$delta_eta1[,,1000], t(result$samples$delta_eta2[,,1000]))
+full_var(q0)
+full_var(q1)
+init_mcmc$prec_eta
+
+r <- 3
+l <- 2
+seqr <- seq(from = 1, by = nreg, length.out = nsub)
+sd0 <- 1 / sqrt(full_var(q0)[r,l])
+sd1 <- 1/sqrt(result$samples$xi_eta[seqr, l,1000] * full_var(q1)[r,l])
+sum(dnorm(result$samples$eta[seqr, 1, 1000], sd0, log = TRUE))
+sum(dnorm(result$samples$eta[seqr, 1, 1000], mean(sd1), log = TRUE))
+
+mynmf <- nmf(1 / init_mcmc$prec_eta, rank = min(nreg, ldim))
+delta_eta1 <- basis(mynmf)
+delta_eta2 <- coef(mynmf)
+for (i in 1:min(nreg, ldim)) {
+  init_mcmc$delta_eta1[,i] <- get_cumprod_coef(delta_eta1[,i])
+  init_mcmc$delta_eta2[i,] <- get_cumprod_coef(delta_eta2[i,])
+}
+
+
+num_iter <- 10
+thin <- 1
+samples <- matrix(0, cdim * (nreg + ldim), num_iter)
+d1_container <- array(0, dim = c(nreg, cdim, num_iter))
+d2_container <- array(0, dim = c(cdim, ldim, num_iter))
+d1 <- matrix(1, nreg, cdim)
+d2 <- matrix(1, cdim, ldim)
+d1 <- init_mcmc$delta_eta1
+d2 <- init_mcmc$delta_eta2
+d1_prop <- matrix(1, nreg, cdim)
+d2_prop <- matrix(1, cdim, ldim)
+init_mcmc$xi_eta <- matrix(1, nsub * nreg, ldim)
+
+for (i in 1:num_iter) {
+  print(i)
+  for (th in 1:thin) {
+    for (c in 1:4) {
+      
+      d1[,c] <- identify_delta(d1[,c])
+      d2[c,] <- identify_delta(d2[c,])
+      
+      sd1 <- .025 * d1[,c]
+      sd2 <- .025 * d2[c,]
+      d1_prop[,c] <- rtruncnorm(nreg, a = rep(0, nreg), mean = d1[,c], sd = sd1)
+      d2_prop[c,] <- rtruncnorm(ldim, a = rep(0, ldim), mean = d2[c,], sd = sd2)
+      
+      
+      
+      new_d <- compute_delta_eta_density_c(d1_prop, d2_prop, init_mcmc$eta, init_mcmc$beta,
+                                           init_mcmc$xi_eta, X, c - 1)
+      # print("")
+      old_d <- compute_delta_eta_density_c(d1, d2, init_mcmc$eta, init_mcmc$beta, init_mcmc$xi_eta, X, c - 1)
+      print(new_d)
+      print(old_d)
+      # mhr <- new_d - old_d - sum(log(c(d1_prop[,c], d2_prop[c,]))) + sum(log(c(d1[,c], d2[c,])))
+      p1 <- sum(pnorm(d1_prop[,c], mean = 0, sd = sd1, log.p = TRUE))
+      p2 <- sum(pnorm(d2_prop[c,], mean = 0, sd = sd2, log.p = TRUE))
+      p3 <- sum(pnorm(d1[,c], mean = 0, sd = sd1, log.p = TRUE))
+      p4 <- sum(pnorm(d2[c,], mean = 0, sd = sd2, log.p = TRUE))
+      print(p1)
+      print(p3)
+      print(p2)
+      print(p4)
+      mhr <- new_d - old_d + p3 + p4 - p1 - p1
+      print(mhr)
+      if (runif(1) < exp(mhr)) {
+        d1[,c] <- d1_prop[,c]
+        d2[c,] <- d2_prop[c,]
+        print("accepted")
+      }
+      d1_container[,,i] <- d1
+      d2_container[,,i] <- d2
+    }
+  }
+}
+
+full_var_container <- array(0, dim = c(nreg, ldim, num_iter))
+for (i in 1:num_iter) {
+  q <- c(d1_container[,,i], t(d2_container[,,i]))
+  full_var_container[,,i] <- full_var(q)
+}
+r <- 3
+l <- 2
+1 / full_var_container[,,num_iter]
+full_var_container[,,num_iter]
+plot(1 / full_var_container[r,l,], type = "l")
+abline(h = 1 / init_mcmc$prec_eta[r,l], col = "red")
+identify_delta <- function(delta) {
+  delta_cumprod <- cumprod(delta)
+  delta <- get_cumprod_coef(sort(delta_cumprod))
+  return(delta)
+}
+
+q0 <- c(init_mcmc$delta_eta1, t(init_mcmc$delta_eta2))
+q1 <- c(d1_container[,,5000], t(d2_container[,,5000]))
+1 / full_var(q0)
+1 / full_var(q1)
+
+
+d1 <- init_mcmc$delta_eta1
+d2 <- init_mcmc$delta_eta2
+q0 <- c(d1, t(d2))
+full_var(q0)
+# d1 %*% t(d2)
+a_coef <- sqrt(d1[1,1] * d2[1,1])
+d1[,1] <- d1[,1] * a_coef^(1/7) / d1[1,1]
+d2[1,] <- d2[1,] * a_coef^(1/4) / d2[1,1]
+q0 <- c(d1, t(d2))
+full_var(q0)
+# d1 %*% t(d2)
+
+q0 <- c(d1, t(d2))
+q1 <- c(d1_con, t(d2_identify))
+full_var(q0)
+full_var(q1)
 
 

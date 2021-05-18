@@ -93,19 +93,22 @@ double get_delta_eta_density(arma::mat& delta_eta1, arma::mat& delta_eta2,
     delta_eta1_cumprod.col(i) = arma::cumprod(delta_eta1.col(i));
     delta_eta2_cumprod.row(i) = arma::cumprod(delta_eta2.row(i));
   }
-  arma::mat full_var = delta_eta1_cumprod * delta_eta2_cumprod;  
+  arma::mat full_var = delta_eta1_cumprod * delta_eta2_cumprod;
   arma::vec etavec, betavec, etamean;
   arma::vec density_vec = arma::vec(cdim * (nreg + ldim));
   arma::vec sd = arma::vec(nsub);
   double density = 0;
-  for (arma::uword r = 0; r < nreg; r++) {
-    arma::uvec r_ind = arma::regspace<arma::uvec>(r, nreg, (nsub - 1) * nreg + r);
-    for (arma::uword l = 0; l < ldim; l++) {
-      etavec = arma::vec(eta.col(l)).rows(r_ind);
-      betavec = arma::vec(beta.col(l)).rows(r * d, (r + 1) * d - 1);
+  for (arma::uword rp = 0; rp < nreg; rp++) {
+    arma::uvec r_ind = arma::regspace<arma::uvec>(rp, nreg, (nsub - 1) * nreg + rp);
+    for (arma::uword lp = 0; lp < ldim; lp++) {
+      etavec = arma::vec(eta.col(lp)).rows(r_ind);
+      betavec = arma::vec(beta.col(lp)).rows(rp * d, (rp + 1) * d - 1);
       etamean = design * betavec;
-      sd = arma::pow(arma::mat(xi_eta.col(l)).rows(r_ind) * full_var(r, l), -.5);
+      sd = arma::pow(arma::mat(xi_eta.col(lp)).rows(r_ind) * full_var(rp, lp), -.5);
       density = density + arma::accu(arma::log_normpdf(etavec, etamean, sd));
+      if (rp == 0 && lp == 0) {
+        Rcpp::Rcout << arma::stddev(etavec) << "\n";
+      }
     }
   }
   for (arma::uword c = 0; c < cdim; c++) {
@@ -116,8 +119,79 @@ double get_delta_eta_density(arma::mat& delta_eta1, arma::mat& delta_eta2,
       density = density + R::dgamma(delta_eta2(c, l), 2, 1, true);
     }
   }
-  // density = density + R::dgamma(arma::as_scalar(delta_eta1.col(c).row(r)),)
-  return(-density);
+  return(density);
+}
+
+double get_delta_eta1_density(arma::mat& delta_eta1, arma::mat& delta_eta2,
+                              arma::mat& eta, arma::mat& beta, arma::mat& xi_eta,
+                              arma::mat& design, arma::uword r, arma::uword c) {
+  if (arma::any(arma::vectorise(delta_eta1) <= 0)) {
+    return(arma::datum::inf);
+  }
+  arma::uword d = design.n_cols;
+  arma::uword nreg = delta_eta1.n_rows;
+  arma::uword ldim = delta_eta2.n_cols;
+  arma::uword nsub = eta.n_rows / nreg;
+  arma::uword cdim = delta_eta1.n_cols;
+  arma::mat delta_eta1_cumprod = arma::mat(nreg, cdim);
+  arma::mat delta_eta2_cumprod = arma::mat(cdim, ldim);
+  for (arma::uword i = 0; i < cdim; i++) {
+    delta_eta1_cumprod.col(i) = arma::cumprod(delta_eta1.col(i));
+    delta_eta2_cumprod.row(i) = arma::cumprod(delta_eta2.row(i));
+  }
+  arma::mat full_var = delta_eta1_cumprod * delta_eta2_cumprod;  
+  arma::vec etavec, betavec, etamean;
+  arma::vec density_vec = arma::vec(cdim * (nreg + ldim));
+  arma::vec sd = arma::vec(nsub);
+  double density = 0;
+  for (arma::uword rp = r; rp < nreg; rp++) {
+    arma::uvec r_ind = arma::regspace<arma::uvec>(rp, nreg, (nsub - 1) * nreg + rp);
+    for (arma::uword l = 0; l < ldim; l++) {
+      etavec = arma::vec(eta.col(l)).rows(r_ind);
+      betavec = arma::vec(beta.col(l)).rows(rp * d, (rp + 1) * d - 1);
+      etamean = design * betavec;
+      sd = arma::pow(arma::mat(xi_eta.col(l)).rows(r_ind) * full_var(rp, l), -.5);
+      density = density + arma::accu(arma::log_normpdf(etavec, etamean, sd));
+    }
+  }
+  density = density + R::dgamma(delta_eta1(r, c), 2, 1, true);
+  return(density);
+}
+
+double get_delta_eta2_density(arma::mat& delta_eta1, arma::mat& delta_eta2,
+                              arma::mat& eta, arma::mat& beta, arma::mat& xi_eta,
+                              arma::mat& design, arma::uword c, arma::uword l) {
+  if (arma::any(arma::vectorise(delta_eta2) <= 0)) {
+    return(arma::datum::inf);
+  }
+  arma::uword d = design.n_cols;
+  arma::uword nreg = delta_eta1.n_rows;
+  arma::uword ldim = delta_eta2.n_cols;
+  arma::uword nsub = eta.n_rows / nreg;
+  arma::uword cdim = delta_eta1.n_cols;
+  arma::mat delta_eta1_cumprod = arma::mat(nreg, cdim);
+  arma::mat delta_eta2_cumprod = arma::mat(cdim, ldim);
+  for (arma::uword i = 0; i < cdim; i++) {
+    delta_eta1_cumprod.col(i) = arma::cumprod(delta_eta1.col(i));
+    delta_eta2_cumprod.row(i) = arma::cumprod(delta_eta2.row(i));
+  }
+  arma::mat full_var = delta_eta1_cumprod * delta_eta2_cumprod;  
+  arma::vec etavec, betavec, etamean;
+  arma::vec density_vec = arma::vec(cdim * (nreg + ldim));
+  arma::vec sd = arma::vec(nsub);
+  double density = 0;
+  for (arma::uword r = 0; r < nreg; r++) {
+    arma::uvec r_ind = arma::regspace<arma::uvec>(r, nreg, (nsub - 1) * nreg + r);
+    for (arma::uword lp = l; lp < ldim; lp++) {
+      etavec = arma::vec(eta.col(lp)).rows(r_ind);
+      betavec = arma::vec(beta.col(lp)).rows(r * d, (r + 1) * d - 1);
+      etamean = design * betavec;
+      sd = arma::pow(arma::mat(xi_eta.col(lp)).rows(r_ind) * full_var(r, lp), -.5);
+      density = density + arma::accu(arma::log_normpdf(etavec, etamean, sd));
+    }
+  }
+  density = density + R::dgamma(delta_eta2(c, l), 2, 1, true);
+  return(density);
 }
 
 // [[Rcpp::export]]
@@ -230,6 +304,46 @@ double get_delta_eta2_grad(arma::mat& delta_eta1, arma::mat& delta_eta2,
   
 }
 
+// [[Rcpp::export]]
+double compute_delta_eta_density_c(arma::mat& delta_eta1, arma::mat& delta_eta2,
+                                   arma::mat& eta, arma::mat& beta, arma::mat& xi_eta,
+                                   arma::mat& design, arma::uword c, double a1,
+                                   double a2, double a3, double a4) {
+  double density = 0;
+  arma::vec etavec, betavec, etamean;
+  arma::uword nreg = delta_eta1.n_rows;
+  arma::uword ldim = delta_eta2.n_cols;
+  arma::uword nsub = eta.n_rows / nreg;
+  arma::uword cdim = delta_eta1.n_cols;
+  arma::uword d = design.n_cols;
+  arma::mat delta_eta1_cumprod = arma::mat(nreg, cdim);
+  arma::mat delta_eta2_cumprod = arma::mat(cdim, ldim);
+  for (arma::uword c = 0; c < cdim; c++) {
+    delta_eta1_cumprod.col(c) = arma::cumprod(delta_eta1.col(c));
+    delta_eta2_cumprod.row(c) = arma::cumprod(delta_eta2.row(c));
+  }
+  arma::mat full_var = delta_eta1_cumprod * delta_eta2_cumprod;
+  arma::vec sd;
+  for (arma::uword r = 0; r < nreg; r++) {
+    arma::uvec r_ind = arma::regspace<arma::uvec>(r, nreg, (nsub - 1) * nreg + r);
+    for (arma::uword l = 0; l < ldim; l++) {
+      etavec = arma::vec(eta.col(l)).rows(r_ind);
+      betavec = arma::vec(beta.col(l)).rows(r * d, (r + 1) * d - 1);
+      etamean = design * betavec;
+      sd = arma::pow(arma::mat(xi_eta.col(l)).rows(r_ind) * full_var(r, l), -.5);
+      density = density + arma::accu(arma::log_normpdf(etavec, etamean, sd));
+      // Rcpp::Rcout << "r = " << r << "\nl = " << l << " " <<arma::accu(arma::log_normpdf(etavec, etamean, sd)) << "\n";
+      if (r == 0 || l == 0) {
+        density = density + R::dgamma(delta_eta1(r, c), a1, 1, true);
+        density = density + R::dgamma(delta_eta2(c, l), a3, 1, true);
+      } else {
+        density = density + R::dgamma(delta_eta1(r, c), a2, 1, true);
+        density = density + R::dgamma(delta_eta2(c, l), a4, 1, true);
+      }
+    }
+  }
+  return(density);
+}
 void compute_sigmasqeta_weak(arma::mat& delta_eta1,
                         arma::mat& delta_eta2,
                         arma::mat& sigmasqeta) {
@@ -275,6 +389,47 @@ void compute_sigmasqetai(arma::mat& sigmasqeta,
   }
 }
 
+// [[Rcpp::export]]
+arma::vec identify_delta1(arma::vec& input) {
+  arma::vec output = arma::vec(input.n_elem);
+  output(0) = input(0);
+  input = arma::cumprod(input);
+  input = arma::sort(input);
+  if (input.n_elem > 1) {
+    for (arma::uword i = 1; i < input.n_elem; i++) {
+      output.row(i) = input.row(i) / input.row(i - 1);
+    }
+  }
+  return(output);
+}
+
+// [[Rcpp::export]]
+arma::rowvec identify_delta2(arma::rowvec& input) {
+  arma::rowvec output = arma::rowvec(input.n_elem);
+  output.col(0) = input.col(0);
+  input = arma::cumprod(input);
+  input = arma::sort(input);
+  if (input.n_elem > 1) {
+    for (arma::uword i = 1; i < input.n_elem; i++) {
+      output.col(i) = input.col(i) / input.col(i - 1);
+    }
+  }
+  return(output);
+}
+
+// [[Rcpp::export]]
+double gam_trunc_left(double a, double b,  double cut){ 
+  double u, pcut, y; 
+  
+  pcut = R::pgamma(cut,a,b,1,0);
+  if(pcut>0.99){
+    return(cut);
+  } 
+  u = R::runif(0.0,1.0); 
+  u = pcut + (1-pcut)*u; 
+  y = R::qgamma(u, a, b, 1, 0);
+  return y; 
+} 
 // 
 // arma::mat leapfrog(arma::vec q, arma::vec p, arma::vec grad,
 //                    arma::uword steps, double step_size) {

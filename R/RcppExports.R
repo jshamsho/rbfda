@@ -68,3 +68,19 @@ get_delta_eta2_grad <- function(delta_eta1, delta_eta2, eta, beta, xi_eta, desig
     .Call('_rbfda_get_delta_eta2_grad', PACKAGE = 'rbfda', delta_eta1, delta_eta2, eta, beta, xi_eta, design, c, l)
 }
 
+compute_delta_eta_density_c <- function(delta_eta1, delta_eta2, eta, beta, xi_eta, design, c, a1, a2, a3, a4) {
+    .Call('_rbfda_compute_delta_eta_density_c', PACKAGE = 'rbfda', delta_eta1, delta_eta2, eta, beta, xi_eta, design, c, a1, a2, a3, a4)
+}
+
+identify_delta1 <- function(input) {
+    .Call('_rbfda_identify_delta1', PACKAGE = 'rbfda', input)
+}
+
+identify_delta2 <- function(input) {
+    .Call('_rbfda_identify_delta2', PACKAGE = 'rbfda', input)
+}
+
+gam_trunc_left <- function(a, b, cut) {
+    .Call('_rbfda_gam_trunc_left', PACKAGE = 'rbfda', a, b, cut)
+}
+

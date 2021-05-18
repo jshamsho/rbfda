@@ -243,7 +243,7 @@ run_fpca_weak <- function(weak_class) {
     fpca1 <- refund::fpca.face(t(Y.trans), center = TRUE,
                                pve = pve, knots = floor(length(tt) * 0.2))
   } else {
-    fpca1 <- refund::fpca.face(t(Y.trans), center = TRUE, floor(length(tt) * 0.2),
+    fpca1 <- refund::fpca.face(t(Y.trans), center = TRUE, knots = floor(length(tt) * 0.2),
                                npc = npc)
   }
   npc <- fpca1$npc
@@ -322,9 +322,9 @@ set_param_weak <- function(weak_class) {
   for (r in 1:nreg) {
     omega[r] <- 1 / var(Y[,r] - Y.smoothed[,r], na.rm = TRUE)
   }
-  # mynmf <- nmf(prec_eta, rank = min(nreg, npc), method = "lee")
-  # delta_eta1 <- basis(mynmf)
-  # delta_eta2 <- coef(mynmf)
+  mynmf <- nmf(prec_eta, rank = min(nreg, npc), method = "lee")
+  delta_eta1 <- basis(mynmf)
+  delta_eta2 <- coef(mynmf)
   # for (i in 1:min(nreg, npc)) {
   #   a_basis <- sqrt(mean(delta_eta1[, i]) * mean(delta_eta2[i, ])) / mean(delta_eta1[, i])
   #   a_coef <- sqrt(mean(delta_eta1[, i]) * mean(delta_eta2[i, ])) / mean(delta_eta2[i, ])
@@ -335,17 +335,17 @@ set_param_weak <- function(weak_class) {
   # a_coef <- sqrt(delta_eta1[1,1] * delta_eta2[1,1]) / delta_eta2[1,1]
   # a_basis <- sqrt(mean(delta_eta1) * mean(delta_eta2)) / mean(delta_eta1)
   # a_coef <- sqrt(mean(delta_eta1) * mean(delta_eta2)) / mean(delta_eta2)
-  # a_basis <- 1
-  # a_coef <- 1
-  # delta_eta1 <- a_basis * delta_eta1
-  # delta_eta2 <- a_coef * delta_eta2
-  # for (i in 1:min(nreg, npc)) {
-    # delta_eta1[,i] <- get_cumprod_coef(delta_eta1[,i])
-    # delta_eta2[i,] <- get_cumprod_coef(delta_eta2[i,])
-  # }
+  a_basis <- 1
+  a_coef <- 1
+  delta_eta1 <- a_basis * delta_eta1
+  delta_eta2 <- a_coef * delta_eta2
+  for (i in 1:min(nreg, npc)) {
+    delta_eta1[,i] <- get_cumprod_coef(delta_eta1[,i])
+    delta_eta2[i,] <- get_cumprod_coef(delta_eta2[i,])
+  }
   cdim <- min(nreg, ldim)
-  delta_eta1 <- matrix(1, nreg, cdim)
-  delta_eta2 <- matrix(1, cdim, ldim)
+  # delta_eta1 <- matrix(1, nreg, cdim)
+  # delta_eta2 <- matrix(1, cdim, ldim)
   members <- list(Y = Y, Y.trans = Y.trans, Y.smoothed = Y.smoothed, tt = tt,
                   B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
                   omega = omega, psi = psi, phi = phi, lambda = lambda,
@@ -364,4 +364,3 @@ get_cumprod_coef <- function(input) {
   }
   return(delta)
 }
-

@@ -69,21 +69,21 @@ void SamplerPartial::sample() {
 }
 
 void SamplerPartial::write_samples() {
-  pars.lambda_container.slice(current_iter) = pars.lambda;
-  pars.beta_container.slice(current_iter) = pars.beta;
-  pars.delta_beta_container.slice(current_iter) = pars.delta_beta;
-  pars.delta_eta_container.slice(current_iter) = pars.delta_eta;
-  pars.omega_container.col(current_iter) = pars.omega;
-  pars.xi_eta_container.slice(current_iter) = pars.xi_eta;
-  pars.zeta_container.col(current_iter) = pars.zeta;
-  pars.eta_container.slice(current_iter) = pars.eta;
-  pars.phi_container(current_iter) = pars.phi;
-  pars.sigmasqetai_container.slice(current_iter) = pars.sigmasqetai;
-  pars.delta_eta_container.slice(current_iter) = pars.delta_eta;
-  pars.nu_container(current_iter) = pars.nu;
-  pars.a1_container(current_iter) = pars.a1;
-  pars.a2_container(current_iter) = pars.a2;
-  pars.a3_container(current_iter) = pars.a3;
+  pars.lambda_container.slice(pars.current_iter) = pars.lambda;
+  pars.beta_container.slice(pars.current_iter) = pars.beta;
+  pars.delta_beta_container.slice(pars.current_iter) = pars.delta_beta;
+  pars.delta_eta_container.slice(pars.current_iter) = pars.delta_eta;
+  pars.omega_container.col(pars.current_iter) = pars.omega;
+  pars.xi_eta_container.slice(pars.current_iter) = pars.xi_eta;
+  pars.zeta_container.col(pars.current_iter) = pars.zeta;
+  pars.eta_container.slice(pars.current_iter) = pars.eta;
+  pars.phi_container(pars.current_iter) = pars.phi;
+  pars.sigmasqetai_container.slice(pars.current_iter) = pars.sigmasqetai;
+  pars.delta_eta_container.slice(pars.current_iter) = pars.delta_eta;
+  pars.nu_container(pars.current_iter) = pars.nu;
+  pars.a1_container(pars.current_iter) = pars.a1;
+  pars.a2_container(pars.current_iter) = pars.a2;
+  pars.a3_container(pars.current_iter) = pars.a3;
   current_iter++;
 }
 
@@ -114,20 +114,22 @@ void SamplerWeak::sample() {
         Rcpp::Rcout << "MCMC terminated by user\n";
         goto stop;
       }
+      pars.beta.zeros();
       transf.complete_response(dat, pars);
       pars.update_lambda(dat, transf);
       pars.update_zeta(dat, transf);
       pars.update_phi(dat, transf);
       pars.update_eta(dat, transf);
-      // pars.update_xi_eta(dat, transf);
+      pars.update_xi_eta(dat, transf);
       // pars.update_delta_eta1(dat, transf);
       // pars.update_delta_eta2(dat, transf);
-      // update_delta_eta(1, .0001);
+      // pars.update_delta_eta_c(dat, transf);
       pars.update_beta(dat, transf);
       pars.update_delta_beta(dat, transf);
       pars.update_omega(dat, transf);
-      // pars.update_nu(dat, transf);
-      // pars.update_a12(dat);
+      pars.update_nu(dat, transf);
+      pars.update_sigmasqeta(dat);
+      // pars.update_a1234(dat);
     }
     progress_bar.increment();
     write_samples();
@@ -137,21 +139,25 @@ void SamplerWeak::sample() {
 }
 
 void SamplerWeak::write_samples() {
-  pars.lambda_container.slice(current_iter) = pars.lambda;
-  pars.beta_container.slice(current_iter) = pars.beta;
-  pars.delta_beta_container.slice(current_iter) = pars.delta_beta;
-  pars.delta_eta1_container.slice(current_iter) = pars.delta_eta1;
-  pars.delta_eta2_container.slice(current_iter) = pars.delta_eta2;
-  pars.omega_container.col(current_iter) = pars.omega;
-  pars.xi_eta_container.slice(current_iter) = pars.xi_eta;
-  pars.zeta_container.col(current_iter) = pars.zeta;
-  pars.eta_container.slice(current_iter) = pars.eta;
-  pars.phi_container.slice(current_iter) = pars.phi;
-  pars.sigmasqetai_container.slice(current_iter) = pars.sigmasqetai;
-  pars.nu_container(current_iter) = pars.nu;
-  pars.a1_container(current_iter) = pars.a1;
-  pars.a2_container(current_iter) = pars.a2;
-  current_iter++;
+  pars.lambda_container.slice(pars.current_iter) = pars.lambda;
+  pars.beta_container.slice(pars.current_iter) = pars.beta;
+  pars.delta_beta_container.slice(pars.current_iter) = pars.delta_beta;
+  pars.delta_eta1_container.slice(pars.current_iter) = pars.delta_eta1;
+  pars.delta_eta2_container.slice(pars.current_iter) = pars.delta_eta2;
+  pars.omega_container.col(pars.current_iter) = pars.omega;
+  pars.xi_eta_container.slice(pars.current_iter) = pars.xi_eta;
+  pars.zeta_container.col(pars.current_iter) = pars.zeta;
+  pars.eta_container.slice(pars.current_iter) = pars.eta;
+  pars.phi_container.slice(pars.current_iter) = pars.phi;
+  pars.sigmasqetai_container.slice(pars.current_iter) = pars.sigmasqetai;
+  pars.nu_container(pars.current_iter) = pars.nu;
+  pars.a1_container(pars.current_iter) = pars.a1;
+  pars.a2_container(pars.current_iter) = pars.a2;
+  pars.a3_container(pars.current_iter) = pars.a3;
+  pars.a4_container(pars.current_iter) = pars.a4;
+  pars.nu_container(pars.current_iter) = pars.nu;
+  pars.sigmasqeta_container.slice(pars.current_iter) = pars.sigmasqeta;
+  pars.current_iter++;
 }
 
 Rcpp::List SamplerWeak::get_samples() {
@@ -169,6 +175,9 @@ Rcpp::List SamplerWeak::get_samples() {
                             Rcpp::Named("nu", pars.nu_container),
                             Rcpp::Named("a1", pars.a1_container),
                             Rcpp::Named("a2", pars.a2_container),
+                            Rcpp::Named("a3", pars.a3_container),
+                            Rcpp::Named("a4", pars.a4_container),
+                            Rcpp::Named("sigmasqeta", pars.sigmasqeta_container),
                             Rcpp::Named("fit", transf.fit));
 }
 

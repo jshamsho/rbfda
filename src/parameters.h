@@ -2,6 +2,7 @@
 #define PARAMETERS_H
 
 #include <RcppArmadillo.h>
+#include <truncnorm.h>
 #include "data.h"
 #include "transformations.h"
 
@@ -33,6 +34,7 @@ class Parameters
     double old_logpost = -arma::datum::inf;
     double rho, alpha;
     double nu;
+    arma::uword current_iter = 0;
     arma::vec omega, zeta, rho_container, alpha_container,
       nu_container, delta_lambda;
     arma::mat lambda, sigmasqeta, sigmasqetai, delta, eta, xi_eta,
@@ -93,18 +95,20 @@ public:
   double a1, a2, a3, a4;
   arma::mat phi, delta_eta1, delta_eta2;
   arma::cube phi_container;
-  arma::vec a1_container, a2_container;
+  arma::vec a1_container, a2_container, a3_container, a4_container;
   arma::cube delta_eta1_container, delta_eta2_container;
   ParametersWeak() {}
   ParametersWeak(const Data& dat, Rcpp::Nullable<Rcpp::List> init_);
   void update_eta(const Data&, TransformationsWeak&);
+  void update_sigmasqeta(const Data&);
   void update_delta_eta1(Data&, TransformationsWeak&);
   void update_delta_eta2(Data&, TransformationsWeak&);
   // void update_delta_eta(const Data&, Transformations&);
-  void update_a123(const Data&);
+  void update_a1234(Data&);
   void update_lambda(const Data&, TransformationsWeak&);
   void update_phi(const Data&, TransformationsWeak&);
   void update_omega(const Data&, TransformationsWeak&);
+  void update_delta_eta_c(Data&, TransformationsWeak&);
   ~ParametersWeak() {}
 };
 

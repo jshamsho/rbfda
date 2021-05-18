@@ -86,9 +86,9 @@ for (i in 1:5000) {
     delta_eta_cumprod[,l,i] <- cumprod(result$samples$delta_eta[,l,i]) * initd[l - 1]
   }
 }
-r <- 1
-l <- 1
-plot(1 / delta_eta_cumprod[r,l,201:5000])
+r <- 4
+l <- 3
+plot(1 / delta_eta_cumprod[r,l,201:5000],type = "l")
 abline(h = 1 / init_mcmc$prec_eta[r,l], col = "red")
 abline(h = ((ldim - l + 1) * 1 / r)^2, col = "blue")
 1 / init_mcmc$prec_eta[r, l]

@@ -172,6 +172,62 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// compute_delta_eta_density_c
+double compute_delta_eta_density_c(arma::mat& delta_eta1, arma::mat& delta_eta2, arma::mat& eta, arma::mat& beta, arma::mat& xi_eta, arma::mat& design, arma::uword c, double a1, double a2, double a3, double a4);
+RcppExport SEXP _rbfda_compute_delta_eta_density_c(SEXP delta_eta1SEXP, SEXP delta_eta2SEXP, SEXP etaSEXP, SEXP betaSEXP, SEXP xi_etaSEXP, SEXP designSEXP, SEXP cSEXP, SEXP a1SEXP, SEXP a2SEXP, SEXP a3SEXP, SEXP a4SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat& >::type delta_eta1(delta_eta1SEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type delta_eta2(delta_eta2SEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type eta(etaSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type xi_eta(xi_etaSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type design(designSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type c(cSEXP);
+    Rcpp::traits::input_parameter< double >::type a1(a1SEXP);
+    Rcpp::traits::input_parameter< double >::type a2(a2SEXP);
+    Rcpp::traits::input_parameter< double >::type a3(a3SEXP);
+    Rcpp::traits::input_parameter< double >::type a4(a4SEXP);
+    rcpp_result_gen = Rcpp::wrap(compute_delta_eta_density_c(delta_eta1, delta_eta2, eta, beta, xi_eta, design, c, a1, a2, a3, a4));
+    return rcpp_result_gen;
+END_RCPP
+}
+// identify_delta1
+arma::vec identify_delta1(arma::vec& input);
+RcppExport SEXP _rbfda_identify_delta1(SEXP inputSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec& >::type input(inputSEXP);
+    rcpp_result_gen = Rcpp::wrap(identify_delta1(input));
+    return rcpp_result_gen;
+END_RCPP
+}
+// identify_delta2
+arma::rowvec identify_delta2(arma::rowvec& input);
+RcppExport SEXP _rbfda_identify_delta2(SEXP inputSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::rowvec& >::type input(inputSEXP);
+    rcpp_result_gen = Rcpp::wrap(identify_delta2(input));
+    return rcpp_result_gen;
+END_RCPP
+}
+// gam_trunc_left
+double gam_trunc_left(double a, double b, double cut);
+RcppExport SEXP _rbfda_gam_trunc_left(SEXP aSEXP, SEXP bSEXP, SEXP cutSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type a(aSEXP);
+    Rcpp::traits::input_parameter< double >::type b(bSEXP);
+    Rcpp::traits::input_parameter< double >::type cut(cutSEXP);
+    rcpp_result_gen = Rcpp::wrap(gam_trunc_left(a, b, cut));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_rbfda_get_pval", (DL_FUNC) &_rbfda_get_pval, 3},
@@ -186,6 +242,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rbfda_get_delta_eta_proposal", (DL_FUNC) &_rbfda_get_delta_eta_proposal, 2},
     {"_rbfda_get_delta_eta1_grad", (DL_FUNC) &_rbfda_get_delta_eta1_grad, 8},
     {"_rbfda_get_delta_eta2_grad", (DL_FUNC) &_rbfda_get_delta_eta2_grad, 8},
+    {"_rbfda_compute_delta_eta_density_c", (DL_FUNC) &_rbfda_compute_delta_eta_density_c, 11},
+    {"_rbfda_identify_delta1", (DL_FUNC) &_rbfda_identify_delta1, 1},
+    {"_rbfda_identify_delta2", (DL_FUNC) &_rbfda_identify_delta2, 1},
+    {"_rbfda_gam_trunc_left", (DL_FUNC) &_rbfda_gam_trunc_left, 3},
     {NULL, NULL, 0}
 };
 
