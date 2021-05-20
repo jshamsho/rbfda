@@ -11,10 +11,11 @@ Authors@R: c(person("John", "Shamshoian", email = "jshamsho@gmail.com",
 Maintainer: John Shamshoian <jshamsho@gmail.com>
 Description: Provides Markov-Chain Monte Carlo algorithms for performing robust Bayes Functional Probabilistic Principal Components Analysis. This package implements normal, t-distributed, and asymmetric laplace errors.
 License: GPL (>= 2)
-Imports: Rcpp (>= 1.0.5)
+Imports: 
+    Rcpp (>= 1.0.5),
+    magrittr
 Suggests:
     refund,
-    magrittr,
     MASS,
     pracma,
     mgcv

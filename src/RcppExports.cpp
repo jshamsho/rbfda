@@ -6,44 +6,11 @@
 
 using namespace Rcpp;
 
-// get_pval
-double get_pval(arma::mat eta, arma::uword nreg, arma::uword ldim);
-RcppExport SEXP _rrbfda_get_pval(SEXP etaSEXP, SEXP nregSEXP, SEXP ldimSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type eta(etaSEXP);
-    Rcpp::traits::input_parameter< arma::uword >::type nreg(nregSEXP);
-    Rcpp::traits::input_parameter< arma::uword >::type ldim(ldimSEXP);
-    rcpp_result_gen = Rcpp::wrap(get_pval(eta, nreg, ldim));
-    return rcpp_result_gen;
-END_RCPP
-}
-// reshape_nreg
-arma::mat reshape_nreg(arma::mat eta, arma::uword nsub, arma::uword nreg);
-RcppExport SEXP _rrbfda_reshape_nreg(SEXP etaSEXP, SEXP nsubSEXP, SEXP nregSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type eta(etaSEXP);
-    Rcpp::traits::input_parameter< arma::uword >::type nsub(nsubSEXP);
-    Rcpp::traits::input_parameter< arma::uword >::type nreg(nregSEXP);
-    rcpp_result_gen = Rcpp::wrap(reshape_nreg(eta, nsub, nreg));
-    return rcpp_result_gen;
-END_RCPP
-}
-// postcheck
-Rcpp::List postcheck(Rcpp::List mcmc, arma::uword refdist_samples);
-RcppExport SEXP _rrbfda_postcheck(SEXP mcmcSEXP, SEXP refdist_samplesSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type mcmc(mcmcSEXP);
-    Rcpp::traits::input_parameter< arma::uword >::type refdist_samples(refdist_samplesSEXP);
-    rcpp_result_gen = Rcpp::wrap(postcheck(mcmc, refdist_samples));
-    return rcpp_result_gen;
-END_RCPP
-}
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // run_mcmc
 Rcpp::List run_mcmc(arma::mat response, arma::mat design, arma::mat basis, arma::vec time, arma::mat penalty, arma::uword ldim, arma::uword iter, arma::uword burnin, arma::uword thin, Rcpp::Nullable<Rcpp::List> init_, std::string covstruct);
 RcppExport SEXP _rrbfda_run_mcmc(SEXP responseSEXP, SEXP designSEXP, SEXP basisSEXP, SEXP timeSEXP, SEXP penaltySEXP, SEXP ldimSEXP, SEXP iterSEXP, SEXP burninSEXP, SEXP thinSEXP, SEXP init_SEXP, SEXP covstructSEXP) {
@@ -150,6 +117,24 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// compute_delta_eta_density_c2
+double compute_delta_eta_density_c2(arma::mat& delta_eta1, arma::mat& delta_eta2, arma::vec& delta_eta3, arma::mat& eta, arma::mat& beta, arma::mat& xi_eta, arma::mat& design, arma::uword c);
+RcppExport SEXP _rrbfda_compute_delta_eta_density_c2(SEXP delta_eta1SEXP, SEXP delta_eta2SEXP, SEXP delta_eta3SEXP, SEXP etaSEXP, SEXP betaSEXP, SEXP xi_etaSEXP, SEXP designSEXP, SEXP cSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat& >::type delta_eta1(delta_eta1SEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type delta_eta2(delta_eta2SEXP);
+    Rcpp::traits::input_parameter< arma::vec& >::type delta_eta3(delta_eta3SEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type eta(etaSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type xi_eta(xi_etaSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type design(designSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type c(cSEXP);
+    rcpp_result_gen = Rcpp::wrap(compute_delta_eta_density_c2(delta_eta1, delta_eta2, delta_eta3, eta, beta, xi_eta, design, c));
+    return rcpp_result_gen;
+END_RCPP
+}
 // identify_delta1
 arma::vec identify_delta1(arma::vec& input);
 RcppExport SEXP _rrbfda_identify_delta1(SEXP inputSEXP) {
@@ -185,20 +170,46 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// normal_trunc_left
+double normal_trunc_left(double a, double b, double cut);
+RcppExport SEXP _rrbfda_normal_trunc_left(SEXP aSEXP, SEXP bSEXP, SEXP cutSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type a(aSEXP);
+    Rcpp::traits::input_parameter< double >::type b(bSEXP);
+    Rcpp::traits::input_parameter< double >::type cut(cutSEXP);
+    rcpp_result_gen = Rcpp::wrap(normal_trunc_left(a, b, cut));
+    return rcpp_result_gen;
+END_RCPP
+}
+// reshape_nreg
+arma::mat reshape_nreg(arma::mat eta, arma::uword nsub, arma::uword nreg);
+RcppExport SEXP _rrbfda_reshape_nreg(SEXP etaSEXP, SEXP nsubSEXP, SEXP nregSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type eta(etaSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type nsub(nsubSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type nreg(nregSEXP);
+    rcpp_result_gen = Rcpp::wrap(reshape_nreg(eta, nsub, nreg));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_rrbfda_get_pval", (DL_FUNC) &_rrbfda_get_pval, 3},
-    {"_rrbfda_reshape_nreg", (DL_FUNC) &_rrbfda_reshape_nreg, 3},
-    {"_rrbfda_postcheck", (DL_FUNC) &_rrbfda_postcheck, 2},
     {"_rrbfda_run_mcmc", (DL_FUNC) &_rrbfda_run_mcmc, 11},
     {"_rrbfda_get_delta_eta_density", (DL_FUNC) &_rrbfda_get_delta_eta_density, 6},
     {"_rrbfda_get_delta_eta_proposal", (DL_FUNC) &_rrbfda_get_delta_eta_proposal, 2},
     {"_rrbfda_get_delta_eta1_grad", (DL_FUNC) &_rrbfda_get_delta_eta1_grad, 8},
     {"_rrbfda_get_delta_eta2_grad", (DL_FUNC) &_rrbfda_get_delta_eta2_grad, 8},
     {"_rrbfda_compute_delta_eta_density_c", (DL_FUNC) &_rrbfda_compute_delta_eta_density_c, 11},
+    {"_rrbfda_compute_delta_eta_density_c2", (DL_FUNC) &_rrbfda_compute_delta_eta_density_c2, 8},
     {"_rrbfda_identify_delta1", (DL_FUNC) &_rrbfda_identify_delta1, 1},
     {"_rrbfda_identify_delta2", (DL_FUNC) &_rrbfda_identify_delta2, 1},
     {"_rrbfda_gam_trunc_left", (DL_FUNC) &_rrbfda_gam_trunc_left, 3},
+    {"_rrbfda_normal_trunc_left", (DL_FUNC) &_rrbfda_normal_trunc_left, 3},
+    {"_rrbfda_reshape_nreg", (DL_FUNC) &_rrbfda_reshape_nreg, 3},
     {NULL, NULL, 0}
 };
 

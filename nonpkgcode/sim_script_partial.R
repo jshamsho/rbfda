@@ -8,6 +8,7 @@ nsub <- 100
 nt <- 60
 nreg <- 5
 ldim <- 4
+ldim_est <- 4
 d <- 2
 ndf <- 15
 tt <- seq(from = 0, to = 1, length.out = nt)
@@ -15,16 +16,15 @@ sim_data <- sim_weak(nt, nsub, nreg, ldim)
 sim_data <- sim_partial(nt, nsub, nreg, ldim)
 sim_data <- sim_partial_cs(nt, nsub, nreg, ldim, rho1 = .8)
 sim_data <- sim_non_partial(nt, nsub, nreg, ldim, rho1 = .8, rho2 = .2)
-X <- cbind(rep(1, nsub), matrix(rnorm(nsub * (d - 1)), nrow = nsub, ncol = d - 1))
+X <- cbind(rep(1, nsub))
 basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2), data.frame(tt), absorb.cons = FALSE)
 B <- basisobj[[1]]$X
 penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
-init_mcmc <- initialize_mcmc_partial(sim_data$Y, tt, B, X, ldim = ldim)
+init_mcmc <- initialize_mcmc_partial(sim_data$Y, tt, B, X, ldim = ldim_est)
 plot(init_mcmc$psi[,1])
 result <- run_mcmc(response = sim_data$Y, design = X, basis = B, time = tt,
-                   penalty = penalty, ldim = ldim, iter = 5000, burnin = 1000,
+                   penalty = penalty, ldim = ldim_est, iter = 5000, burnin = 1000,
                    thin = 1, init_ = init_mcmc, covstruct = "partial")
-result$samples$phi[[1]][,,4] %>% tcrossprod()
 pvals <- get_pvals_partial(result)
 hist(pvals)
 abline(v = median(pvals))
@@ -64,13 +64,14 @@ lines(init_mcmc$psi[,efunc], col = "green")
 lines(B %*% apply(result$samples$lambda[,efunc,],1,mean), col = "blue")
 sum((init_mcmc$psi[,efunc] - sim_data$psi[,efunc])^2)
 sum((B %*% apply(result$samples$lambda[,efunc,], 1, median) - sim_data$psi[,efunc])^2)
+
 r <- 2
-i <- 2
+i <- 50
 plot(sim_data$Y[((i - 1) * nt + 1):(i * nt),r])
 seqr <- ((i - 1) * nreg + 1):(i * nreg)
 for (i in 201:5000) {
   tmpsum <- numeric(nt)
-  for (l in 1:init_mcmc$npc) {
+  for (l in 1:6) {
     tmpsum <- tmpsum + B %*% result$samples$lambda[,l, i] %*% 
       t(result$samples$phi[[i]][r,,l]) %*% 
       result$samples$eta[seqr, l, i]
@@ -87,7 +88,7 @@ for (i in 1:5000) {
   }
 }
 r <- 4
-l <- 3
+l <- 2
 plot(1 / delta_eta_cumprod[r,l,201:5000],type = "l")
 abline(h = 1 / init_mcmc$prec_eta[r,l], col = "red")
 abline(h = ((ldim - l + 1) * 1 / r)^2, col = "blue")

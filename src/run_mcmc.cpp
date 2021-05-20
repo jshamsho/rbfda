@@ -44,5 +44,5 @@ Rcpp::List run_mcmc(arma::mat response, arma::mat design,
   return_me["data"] = mysampler->write_data();
   return_me["samples"] = mysampler->get_samples();
   return_me["control"] = mysampler->write_control();
-  return return_me;
+  return(return_me);
 }

@@ -63,11 +63,35 @@ normald <- function(x, nreg, ldim) {
 #' @export
 get_pvals_partial <- function(result, func = normald) {
   iters <- result$control$iterations
-  burnin <- result$control$burnin + 1
-  pvals <- sapply(burnin:iters, function(i) {theta <- 
+  burnin <- result$control$burnin
+  nreg <- result$data$nreg
+  ldim <- result$data$ldim
+  pvals <- sapply((burnin + 1):iters, function(i) {theta <- 
     get_theta(result$samples$eta[,,i], result$samples$phi[[i]], nreg);
   func(theta, nreg, ldim)}
   )
+  return(pvals)
+}
+
+#' @export
+get_pvals_weak <- function(result) {
+  iterations <- result$control$iterations
+  burnin <- result$control$burnin
+  nsub <- result$data$nsub
+  nreg <- result$data$nreg
+  ldim <- result$data$ldim
+  p <- nreg * ldim
+  mu1 <- (p - nsub + 3/2) * log(1 - p / (nsub - 1)) - (nsub - 2) / (nsub - 1) * p
+  var1 <- -2 * (p / (nsub - 1) + log(1 - p / (nsub - 1)))
+  sd1 <- sqrt(var1)
+  pvals <- numeric(iterations - burnin) 
+  for (iter in (burnin + 1):iterations) {
+    index <- iter - burnin
+    eta_reshaped <- reshape_nreg(result$samples$eta[,,iter], nsub, nreg)
+    cormat <- cor(eta_reshaped)
+    q <- (log(det(cormat)) - mu1) / sd1
+    pvals[index] <- pnorm(q, lower.tail = TRUE)
+  }
   return(pvals)
 }
 

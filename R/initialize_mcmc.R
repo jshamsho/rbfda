@@ -1,6 +1,6 @@
-library(refund)
-library(magrittr)
+#' @importFrom magrittr %>%
 
+#' @export
 initialize_mcmc_partial <- function(Y, tt, B = NULL,
                                     X = NULL, pve = NULL, ldim = NULL) {
   partial_mcmc_init <- new_partial_class(Y = Y, tt = tt, B = B, X = X,
@@ -185,6 +185,7 @@ set_param_partial <- function(partial_class) {
   return(structure(members, class = "partial_class"))
 }
 
+#' @export
 initialize_mcmc_weak <- function(Y, tt, B = NULL, X = NULL,
                                  pve = NULL, ldim = NULL) {
   weak_mcmc_init <- new_weak_class(Y = Y, tt = tt, B = B, X = X,
@@ -238,10 +239,10 @@ run_fpca_weak <- function(weak_class) {
     Y.trans[, ((i - 1) * nreg + 1):(i * nreg)] <- Y[((i - 1) * nt + 1):(i * nt),]
   }
   if (is.null(npc)) {
-    fpca1 <- refund::fpca.face(t(Y.trans), center = TRUE,
+    fpca1 <- refund::fpca.face(t(Y.trans), argvals = tt, center = TRUE,
                                pve = pve, knots = floor(length(tt) * 0.2))
   } else {
-    fpca1 <- refund::fpca.face(t(Y.trans), center = TRUE, knots = floor(length(tt) * 0.2),
+    fpca1 <- refund::fpca.face(t(Y.trans), argvals = tt, center = TRUE, knots = floor(length(tt) * 0.2),
                                npc = npc)
   }
   npc <- fpca1$npc
@@ -266,6 +267,7 @@ set_size_param_weak <- function(weak_class) {
   members <- list(Y = Y, Y.trans = Y.trans, Y.smoothed = Y.smoothed, tt = tt,
                   B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
                   omega = omega, psi = psi, phi = phi, lambda = lambda,
+                  delta_eta1 = delta_eta1, delta_eta2 = delta_eta2,
                   eta = eta, prec_eta = prec_eta, beta = beta, pve = pve)
   return(members)
 }
@@ -318,6 +320,7 @@ set_param_weak <- function(weak_class) {
   for (r in 1:nreg) {
     omega[r] <- 1 / var(Y[,r] - Y.smoothed[,r], na.rm = TRUE)
   }
+  
   # mynmf <- nmf(prec_eta, rank = min(nreg, npc), method = "lee")
   # delta_eta1 <- basis(mynmf)
   # delta_eta2 <- coef(mynmf)
@@ -346,6 +349,7 @@ set_param_weak <- function(weak_class) {
                   B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
                   omega = omega, psi = psi, phi = phi, lambda = lambda,
                   eta = eta, prec_eta = prec_eta, beta = beta,
+                  delta_eta1 = delta_eta1, delta_eta2 = delta_eta2,
                   pve = pve)
   return(members)
 }

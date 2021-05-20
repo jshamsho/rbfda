@@ -92,9 +92,10 @@ class ParametersWeak : public Parameters
 {
 public:
   double a1, a2, a3, a4;
-  arma::mat phi, delta_eta1, delta_eta2;
+  arma::mat phi, delta_eta1, delta_eta2, delta_eta3_container;
   arma::cube phi_container;
   arma::vec a1_container, a2_container, a3_container, a4_container;
+  arma::vec delta_eta3;
   arma::cube delta_eta1_container, delta_eta2_container;
   ParametersWeak() {}
   ParametersWeak(const Data& dat, Rcpp::Nullable<Rcpp::List> init_);
@@ -108,6 +109,8 @@ public:
   void update_phi(const Data&, TransformationsWeak&);
   void update_omega(const Data&, TransformationsWeak&);
   void update_delta_eta_c(Data&, TransformationsWeak&);
+  void update_delta_eta_c2(Data& dat);
+  void update_delta3(Data& dat);
   ~ParametersWeak() {}
 };
 
