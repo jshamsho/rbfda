@@ -615,18 +615,10 @@ void ParametersWeak::update_delta_eta_c2(Data& dat) {
   double new_density, old_density;
   double mhr;
   for (arma::uword c = 0; c < dat.cdim; c++) {
-    p1 = 0; p2 = 0; p3 = 0; p4 = 0;
-    sd3 = mult * d3(c);
-    if (c > 0) {
-      cut = d3(c - 1);
-      // d3(c) = normal_trunc_left(d3(c), sd3, cut);
-      // p5 = R::pnorm5(d3(c) - cut, 0, sd3, true, true);
-      // p6 = R::pnorm5(delta_eta3(c) - cut, 0, sd3, true, true);
-    }
     for (arma::uword r = 0; r < dat.nreg; r++) {
       if (r == 0) {
-        cut = 0;
-        old_cut = 0;
+        cut = 1e-6;
+        old_cut = 1e-6;
       } else {
         cut = d1(r - 1, c);
         old_cut = delta_eta1(r - 1, c);
@@ -640,8 +632,8 @@ void ParametersWeak::update_delta_eta_c2(Data& dat) {
     }
     for (arma::uword l = 0; l < dat.ldim; l++) {
       if (l == 0) {
-        cut = 0;
-        old_cut = 0;
+        cut = 1e-6;
+        old_cut = 1e-6;
       } else {
         cut = d2(c, l - 1);
         old_cut = delta_eta2(c, l - 1);

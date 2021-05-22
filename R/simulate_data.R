@@ -119,7 +119,8 @@ sim_partial <- function(nt, nsub, nreg, ldim = 4) {
       diag(((ldim - l + 1) / (1:nreg))^2) %*%
       t(phi[,,l])
   }
-  sim_data <- list(Y = Y, psi = psi, theta = theta, Sigma = Sigma, phi = phi)
+  sim_data <- list(Y = Y, psi = psi, theta = theta, Sigma = Sigma, phi = phi,
+                   sigma_mat = sigma_mat)
   return(sim_data)
 }
 

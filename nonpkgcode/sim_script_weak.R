@@ -1,20 +1,21 @@
 args = commandArgs(trailingOnly=TRUE)
 set.seed(args[1])
+print(paste("Running", args[1]))
 library(mgcv)
 library(rrbfda)
-
+set.seed(89)
 nsub <- 50
 nt <- 60
 nreg <- 6
 ldim <- 4
-ndf <- 30
+ndf <- 15
 iterations <- 10000
 thin <- 10
-burnin <- 2000
+burnin <- 2500
 tt <- seq(from = 0, to = 1, length.out = nt)
-sim_data <- sim_weak(nt, nsub, nreg, ldim = ldim)
+# sim_data <- sim_weak(nt, nsub, nreg, ldim = ldim)
 # sim_data <- sim_non_weak(nt, nsub, nreg, ldim)
-# sim_data <- sim_partial(nt, nsub, nreg, ldim = ldim)
+sim_data <- sim_partial(nt, nsub, nreg, ldim = ldim)
 # sim_data <- sim_partial_cs(nt, nsub, nreg, ldim, rho1 = .8)
 # sim_data <- sim_non_partial(nt, nsub, nreg, ldim, rho1 = .8, rho2 = .6)
 X <- cbind(rep(1, nsub))
@@ -54,15 +55,18 @@ nu_summary <- quantile(result$samples$nu[(burnin + 1):iterations], quantile(c(.0
 
 pvals <- get_pvals_weak(result)
 
-simstats <- list(eigenfunc_summary = eigenfunc_summary,
+simstats <- list(sim_data <- sim_data,
+                 eigenfunc_summary = eigenfunc_summary,
                  eigenvec_summary = eigenvec_summary,
                  eigenval_summary = eigenval_summary,
                  mean_summary = mean_summary,
                  noise_summary = noise_summary,
                  pvals = pvals)
 
-save(simstats, file = "/../n50_simpartial_fitweak.RData")
+outfile <- paste0("n50_simpartial_fitweak", 89, ".RData")
+save(simstats, file = outfile)
 # 
+
 # num <- 2
 # eigenvec_summary <- get_posteigenvec(result, num)
 # plot(eigenvec_summary[,1], type = "o", ylim = c(-.9, .9))
