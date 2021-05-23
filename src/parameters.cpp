@@ -895,6 +895,7 @@ void Parameters::update_zeta(const Data& dat, Transformations& transf) {
     rate = prior_zeta_rate + .5 *
       arma::as_scalar(lambda.col(l).t() * dat.penalty * lambda.col(l));
     zeta(l) = R::rgamma(shape, 1.0 / rate);
+    zeta(l) = gam_trunc_right(shape, 1.0 / rate, 1e8);
   }
 }
 

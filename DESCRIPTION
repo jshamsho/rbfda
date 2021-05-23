@@ -9,7 +9,7 @@ Authors@R: c(person("John", "Shamshoian", email = "jshamsho@gmail.com",
              person("Shafali", "Jeste", role = c("aut")),
              person("Donatello", "Telesca", role = c("aut")))
 Maintainer: John Shamshoian <jshamsho@gmail.com>
-Description: Provides Markov-Chain Monte Carlo algorithms for performing robust Bayes Functional Probabilistic Principal Components Analysis. This package implements normal, t-distributed, and asymmetric laplace errors.
+Description: This package is used for Bayesian analysis of region-referenced functional data. This package implements Markov Chain Monte Carlo algorithms to sample from the posterior under partial and weak separability assumptions.
 License: GPL (>= 2)
 Imports: 
     Rcpp (>= 1.0.5),

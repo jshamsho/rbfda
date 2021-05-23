@@ -43,6 +43,7 @@ arma::vec identify_delta1(arma::vec&);
 arma::rowvec identify_delta2(arma::rowvec&);
 double gam_trunc_left(double a, double b,  double cut);
 double normal_trunc_left(double a, double b, double cut);
+double gam_trunc_right(double a, double b, double cut);
 arma::mat reshape_nreg(arma::mat eta, arma::uword nsub, arma::uword nreg);
 
 #endif

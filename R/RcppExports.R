@@ -59,6 +59,10 @@ gam_trunc_left <- function(a, b, cut) {
     .Call('_rrbfda_gam_trunc_left', PACKAGE = 'rrbfda', a, b, cut)
 }
 
+gam_trunc_right <- function(a, b, cut) {
+    .Call('_rrbfda_gam_trunc_right', PACKAGE = 'rrbfda', a, b, cut)
+}
+
 normal_trunc_left <- function(a, b, cut) {
     .Call('_rrbfda_normal_trunc_left', PACKAGE = 'rrbfda', a, b, cut)
 }

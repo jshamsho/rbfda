@@ -170,6 +170,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// gam_trunc_right
+double gam_trunc_right(double a, double b, double cut);
+RcppExport SEXP _rrbfda_gam_trunc_right(SEXP aSEXP, SEXP bSEXP, SEXP cutSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type a(aSEXP);
+    Rcpp::traits::input_parameter< double >::type b(bSEXP);
+    Rcpp::traits::input_parameter< double >::type cut(cutSEXP);
+    rcpp_result_gen = Rcpp::wrap(gam_trunc_right(a, b, cut));
+    return rcpp_result_gen;
+END_RCPP
+}
 // normal_trunc_left
 double normal_trunc_left(double a, double b, double cut);
 RcppExport SEXP _rrbfda_normal_trunc_left(SEXP aSEXP, SEXP bSEXP, SEXP cutSEXP) {
@@ -208,6 +221,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rrbfda_identify_delta1", (DL_FUNC) &_rrbfda_identify_delta1, 1},
     {"_rrbfda_identify_delta2", (DL_FUNC) &_rrbfda_identify_delta2, 1},
     {"_rrbfda_gam_trunc_left", (DL_FUNC) &_rrbfda_gam_trunc_left, 3},
+    {"_rrbfda_gam_trunc_right", (DL_FUNC) &_rrbfda_gam_trunc_right, 3},
     {"_rrbfda_normal_trunc_left", (DL_FUNC) &_rrbfda_normal_trunc_left, 3},
     {"_rrbfda_reshape_nreg", (DL_FUNC) &_rrbfda_reshape_nreg, 3},
     {NULL, NULL, 0}

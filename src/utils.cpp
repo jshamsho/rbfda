@@ -503,6 +503,20 @@ double gam_trunc_left(double a, double b,  double cut){
 } 
 
 // [[Rcpp::export]]
+double gam_trunc_right(double a, double b, double cut) {
+  double u, pcut, y;
+  
+  pcut = R::pgamma(cut, a, b, 0, 0);
+  if (pcut > .99) {
+    return(cut);
+  }
+  u = R::runif(0, 1);
+  u = pcut + (1 - pcut) * u;
+  y = R::qgamma(u, a, b, 0, 0);
+  return(y);
+}
+
+// [[Rcpp::export]]
 double normal_trunc_left(double a, double b, double cut) { 
   double u, pcut, y; 
   

@@ -3,8 +3,8 @@ set.seed(args[1])
 print(paste("Running", args[1]))
 library(mgcv)
 library(rrbfda)
-set.seed(89)
-nsub <- 50
+set.seed(300)
+nsub <- 200
 nt <- 60
 nreg <- 6
 ldim <- 4
@@ -13,9 +13,9 @@ iterations <- 10000
 thin <- 10
 burnin <- 2500
 tt <- seq(from = 0, to = 1, length.out = nt)
-# sim_data <- sim_weak(nt, nsub, nreg, ldim = ldim)
+sim_data <- sim_weak(nt, nsub, nreg, ldim = ldim)
 # sim_data <- sim_non_weak(nt, nsub, nreg, ldim)
-sim_data <- sim_partial(nt, nsub, nreg, ldim = ldim)
+# sim_data <- sim_partial(nt, nsub, nreg, ldim = ldim)
 # sim_data <- sim_partial_cs(nt, nsub, nreg, ldim, rho1 = .8)
 # sim_data <- sim_non_partial(nt, nsub, nreg, ldim, rho1 = .8, rho2 = .6)
 X <- cbind(rep(1, nsub))
@@ -63,7 +63,8 @@ simstats <- list(sim_data <- sim_data,
                  noise_summary = noise_summary,
                  pvals = pvals)
 
-outfile <- paste0("n50_simpartial_fitweak", 89, ".RData")
+outfile <- paste0("/u/home/j/jshamsh1/Documents/rrbfda/output/n200_simweak_fitweak
+/n200_simweak_fitweak", myseed, ".RData")
 save(simstats, file = outfile)
 # 
 
@@ -74,15 +75,15 @@ save(simstats, file = outfile)
 # points(eigenvec_summary[,2], type = "o")
 # points(eigenvec_summary[,3], type = "o")
 # # 
-# var_mats <- array(0, dim = c(nreg, ldim_est, iterations))
-# for (i in 1:iterations) {
-#   var_mats[,,i] <- 1 / result$samples$ sigmasqeta[,,i]
-# }
-# r <- 6
-# l <- 2
-# plot(var_mats[r,l,], type = "l")
-# abline(h = 1 / init_mcmc$prec_eta[r, l])
-# abline(h = sim_data$sigma_mat[r, l], col = "red")
+var_mats <- array(0, dim = c(nreg, ldim_est, iterations))
+for (i in 1:iterations) {
+  var_mats[,,i] <- 1 / result$samples$sigmasqeta[,,i]
+}
+r <- 1
+l <- 1
+plot(var_mats[r,l,], type = "l")
+abline(h = 1 / init_mcmc$prec_eta[r, l])
+abline(h = sim_data$sigma_mat[r, l], col = "red")
 # 
 # num <- 3
 # plot(eigenfunc_summary[,num,1], ylim = c(-.5, .5), type = "l")
