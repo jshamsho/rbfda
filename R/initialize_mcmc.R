@@ -197,6 +197,7 @@ initialize_mcmc_weak <- function(Y, tt, B = NULL, X = NULL,
 }
 
 new_weak_class <- function(Y, tt, B = NULL, X = NULL, pve = NULL, ldim = NULL) {
+  nt <- length(tt)
   nsub <- nrow(Y) / nt
   nreg <- ncol(Y)
   nr <- nsub * nreg
@@ -226,7 +227,7 @@ new_weak_class <- function(Y, tt, B = NULL, X = NULL, pve = NULL, ldim = NULL) {
     pve <- .99
   }
   members <- list(Y = Y, Y.trans = Y.trans, Y.smoothed = Y.smoothed, tt = tt,
-                  B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
+                  nt = nt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
                   omega = omega, psi = psi, phi = phi, lambda = lambda,
                   eta = eta, prec_eta = prec_eta, beta = beta, pve = pve)
   return(members)
@@ -248,7 +249,7 @@ run_fpca_weak <- function(weak_class) {
   npc <- fpca1$npc
   psi <- fpca1$efunctions
   members <- list(Y = Y, Y.trans = Y.trans, Y.smoothed = Y.smoothed, tt = tt,
-                  B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
+                  nt = nt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
                   omega = omega, psi = psi, phi = phi, lambda = lambda,
                   eta = eta, prec_eta = prec_eta, beta = beta, pve = pve)
   return(members)
@@ -261,11 +262,10 @@ set_size_param_weak <- function(weak_class) {
   eta <- matrix(0, nreg * nsub, npc)
   prec_eta <- matrix(0, nreg, npc)
   beta <- matrix(0, nreg * ncol(X), npc)
-  delta_eta1 <- matrix(0, nreg, min(nreg, ldim))
-  delta_eta2 <- matrix(0, min(nreg, ldim), ldim)
-  
+  delta_eta1 <- matrix(0, nreg, min(nreg, npc))
+  delta_eta2 <- matrix(0, min(nreg, npc), npc)
   members <- list(Y = Y, Y.trans = Y.trans, Y.smoothed = Y.smoothed, tt = tt,
-                  B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
+                  nt = nt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
                   omega = omega, psi = psi, phi = phi, lambda = lambda,
                   delta_eta1 = delta_eta1, delta_eta2 = delta_eta2,
                   eta = eta, prec_eta = prec_eta, beta = beta, pve = pve)
@@ -346,7 +346,7 @@ set_param_weak <- function(weak_class) {
   # delta_eta1 <- matrix(1, nreg, cdim)
   # delta_eta2 <- matrix(1, cdim, ldim)
   members <- list(Y = Y, Y.trans = Y.trans, Y.smoothed = Y.smoothed, tt = tt,
-                  B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
+                  nt = nt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
                   omega = omega, psi = psi, phi = phi, lambda = lambda,
                   eta = eta, prec_eta = prec_eta, beta = beta,
                   delta_eta1 = delta_eta1, delta_eta2 = delta_eta2,

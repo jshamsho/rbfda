@@ -3,71 +3,114 @@ set.seed(args[1])
 print(paste("Running", args[1]))
 library(mgcv)
 library(rrbfda)
-set.seed(300)
-nsub <- 200
-nt <- 60
-nreg <- 6
-ldim <- 4
-ndf <- 15
-iterations <- 10000
-thin <- 10
-burnin <- 2500
-tt <- seq(from = 0, to = 1, length.out = nt)
-sim_data <- sim_weak(nt, nsub, nreg, ldim = ldim)
-# sim_data <- sim_non_weak(nt, nsub, nreg, ldim)
-# sim_data <- sim_partial(nt, nsub, nreg, ldim = ldim)
-# sim_data <- sim_partial_cs(nt, nsub, nreg, ldim, rho1 = .8)
-# sim_data <- sim_non_partial(nt, nsub, nreg, ldim, rho1 = .8, rho2 = .6)
-X <- cbind(rep(1, nsub))
-basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2),
-                            data.frame(tt), absorb.cons = FALSE)
-B <- basisobj[[1]]$X
-penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
-init_mcmc <- initialize_mcmc_weak(sim_data$Y, tt, B, X)
-ldim_est <- ncol(init_mcmc$lambda)
-result <- run_mcmc(response = sim_data$Y, design = X, basis = B, time = tt,
-                   penalty = penalty, ldim = ldim_est, iter = iterations, burnin = burnin,
-                   thin = thin, init_ = init_mcmc, covstruct = "weak")
-
-eigenfunc_summary <- array(0, dim = c(nt, ldim, 3))
-for (l in 1:ldim) {
-  eigenfunc_summary[, l, ] <- get_posteigenfunc(result, l)
+cl <- parallel::makeCluster(4)
+doParallel::registerDoParallel(cl)
+foreach(myseed = 1:5, .packages = c("rrbfda", "mgcv")) %dopar% {
+  print(paste0("Working on seed ", myseed))
+  set.seed(myseed)
+  nsub <- 200
+  nt <- 60
+  nreg <- 6
+  ldim <- 4
+  ndf <- 15
+  iterations <- 1000
+  thin <- 1
+  burnin <- 0
+  tt <- seq(from = 0, to = 1, length.out = ntt)
+  sim_data <- rrbfda::sim_weak(ntt, nsub, nreg, ldim = ldim)
+  X <- cbind(rep(1, nsub))
+  basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2),
+                              data.frame(tt), absorb.cons = FALSE)
+  B <- basisobj[[1]]$X
+  penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
+  init_mcmc <- rrbfda::initialize_mcmc_weak(sim_data$Y, tt, B, X)
+  ldim_est <- ncol(init_mcmc$lambda)
+  microbenchmark::microbenchmark(result <- run_mcmc(response = sim_data$Y, design = X, basis = B, time = tt,
+                                                    penalty = penalty, ldim = ldim_est, iter = iterations, burnin = burnin,
+                                                    thin = thin, init_ = init_mcmc, covstruct = "weak"), times = 1)
+  
+  NULL
 }
-eigenvec_summary <- array(0, dim = c(nreg, nreg, 3))
-for (r in 1:nreg) {
-  eigenvec_summary[, r, ] <- get_posteigenvec(result, r)
-}
-eigenval_summary <- array(0, dim = c(nreg, ldim_est, 3))
-for (r in 1:nreg) {
-  for (l in 1:ldim_est) {
-    eigenval_summary[r, l, 1:3] <- quantile(1 / result$samples$sigmasqeta[r, l, (burnin + 1):iterations],
-                                          c(.5, .025, .975))
+parallel::stopCluster(cl)
+for (myseed in 1:300) {
+  print(paste0("Working on seed ", myseed))
+  set.seed(myseed)
+  nsub <- 200
+  nt <- 60
+  nreg <- 6
+  ldim <- 4
+  ndf <- 15
+  iterations <- 1000
+  thin <- 1
+  burnin <- 0
+  tt <- seq(from = 0, to = 1, length.out = nt)
+  sim_data <- sim_weak(nt, nsub, nreg, ldim = ldim)
+  # sim_data <- sim_non_weak(nt, nsub, nreg, ldim)
+  # sim_data <- sim_partial(nt, nsub, nreg, ldim = ldim)
+  # sim_data <- sim_partial_cs(nt, nsub, nreg, ldim, rho1 = .8)
+  # sim_data <- sim_non_partial(nt, nsub, nreg, ldim, rho1 = .8, rho2 = .6)
+  X <- cbind(rep(1, nsub))
+  basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2),
+                              data.frame(tt), absorb.cons = FALSE)
+  B <- basisobj[[1]]$X
+  penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
+  init_mcmc <- initialize_mcmc_weak(sim_data$Y, tt, B, X)
+  ldim_est <- ncol(init_mcmc$lambda)
+  microbenchmark::microbenchmark(result <- run_mcmc(response = sim_data$Y, design = X, basis = B, time = tt,
+                                                    penalty = penalty, ldim = ldim_est, iter = iterations, burnin = burnin,
+                                                    thin = thin, init_ = init_mcmc, covstruct = "weak"), times = 1)
+  
+  eigenfunc_summary <- array(0, dim = c(nt, ldim, 3))
+  for (l in 1:ldim) {
+    eigenfunc_summary[, l, ] <- get_posteigenfunc(result, l)
   }
+  eigenvec_summary <- array(0, dim = c(nreg, nreg, 3))
+  for (r in 1:nreg) {
+    eigenvec_summary[, r, ] <- get_posteigenvec(result, r)
+  }
+  eigenval_summary <- array(0, dim = c(nreg, ldim_est, 3))
+  for (r in 1:nreg) {
+    for (l in 1:ldim_est) {
+      eigenval_summary[r, l, 1:3] <- quantile(1 / result$samples$sigmasqeta[r, l, (burnin + 1):iterations],
+                                              c(.5, .025, .975))
+    }
+  }
+  mean_summary <- array(0, dim = c(nt, nreg, 3))
+  for (r in 1:nreg) {
+    mean_summary[,r,] <- get_posteriormean(result, r, 1)
+  }
+  noise_summary <- 1 / t(apply(result$samples$omega[, (burnin + 1):iterations],
+                               1, quantile, c(.5, .975, .025)))
+  colnames(noise_summary) <- c("50%", "2.5%", "97.5%")
+  nu_summary <- quantile(result$samples$nu[(burnin + 1):iterations], quantile(c(.025, .5, .975)))
+  
+  pvals <- get_pvals_weak(result)
+  
+  simstats <- list(sim_data <- sim_data,
+                   eigenfunc_summary = eigenfunc_summary,
+                   eigenvec_summary = eigenvec_summary,
+                   eigenval_summary = eigenval_summary,
+                   mean_summary = mean_summary,
+                   noise_summary = noise_summary,
+                   pvals = pvals)
+  
+  outfile <- paste0("/u/home/j/jshamsh1/Documents/rrbfda/output/n200_simweak_fitweak
+/n200_simweak_fitweakforeach", myseed, ".RData")
+  save(simstats, file = outfile)
 }
-mean_summary <- array(0, dim = c(nt, nreg, 3))
-for (r in 1:nreg) {
-  mean_summary[,r,] <- get_posteriormean(result, r, 1)
-}
-noise_summary <- 1 / t(apply(result$samples$omega[, (burnin + 1):iterations],
-                             1, quantile, c(.5, .975, .025)))
-colnames(noise_summary) <- c("50%", "2.5%", "97.5%")
-nu_summary <- quantile(result$samples$nu[(burnin + 1):iterations], quantile(c(.025, .5, .975)))
 
-pvals <- get_pvals_weak(result)
-
-simstats <- list(sim_data <- sim_data,
-                 eigenfunc_summary = eigenfunc_summary,
-                 eigenvec_summary = eigenvec_summary,
-                 eigenval_summary = eigenval_summary,
-                 mean_summary = mean_summary,
-                 noise_summary = noise_summary,
-                 pvals = pvals)
-
-outfile <- paste0("/u/home/j/jshamsh1/Documents/rrbfda/output/n200_simweak_fitweak
-/n200_simweak_fitweak", myseed, ".RData")
-save(simstats, file = outfile)
 # 
+library (foreach)
 
+fn<-function(i)
+{
+  set.seed(i)
+  y <- rnorm(1)
+  return(y)
+}
+
+x<-foreach(i=1:10) %do% fn(i)
+print(x)
 # num <- 2
 # eigenvec_summary <- get_posteigenvec(result, num)
 # plot(eigenvec_summary[,1], type = "o", ylim = c(-.9, .9))
@@ -75,15 +118,15 @@ save(simstats, file = outfile)
 # points(eigenvec_summary[,2], type = "o")
 # points(eigenvec_summary[,3], type = "o")
 # # 
-var_mats <- array(0, dim = c(nreg, ldim_est, iterations))
-for (i in 1:iterations) {
-  var_mats[,,i] <- 1 / result$samples$sigmasqeta[,,i]
-}
-r <- 1
-l <- 1
-plot(var_mats[r,l,], type = "l")
-abline(h = 1 / init_mcmc$prec_eta[r, l])
-abline(h = sim_data$sigma_mat[r, l], col = "red")
+# var_mats <- array(0, dim = c(nreg, ldim_est, iterations))
+# for (i in 1:iterations) {
+#   var_mats[,,i] <- 1 / result$samples$sigmasqeta[,,i]
+# }
+# r <- 1
+# l <- 1
+# plot(var_mats[r,l,], type = "l")
+# abline(h = 1 / init_mcmc$prec_eta[r, l])
+# abline(h = sim_data$sigma_mat[r, l], col = "red")
 # 
 # num <- 3
 # plot(eigenfunc_summary[,num,1], ylim = c(-.5, .5), type = "l")
