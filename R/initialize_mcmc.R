@@ -13,6 +13,7 @@ initialize_mcmc_partial <- function(Y, tt, B = NULL,
 }
 
 new_partial_class <- function(Y, tt, B = NULL, X = NULL, pve = NULL, ldim = NULL) {
+  nt <- length(tt)
   nsub <- nrow(Y) / nt
   nreg <- ncol(Y)
   nr <- nsub * nreg
@@ -46,7 +47,7 @@ new_partial_class <- function(Y, tt, B = NULL, X = NULL, pve = NULL, ldim = NULL
   }
   members <- list(Y = Y, Y.trans = Y.trans, Y.trans.smoothed = Y.trans.smoothed,
                   Y.trans.smoothed.centered = Y.trans.smoothed.centered,
-                  tt = tt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
+                  tt = tt, nt = nt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
                   omega = omega, mu1 = mu1, mu2 = mu2, psi = psi,
                   phi_cube = phi_cube, phi_mat = phi_mat, lambda = lambda,
                   eta = eta, prec_eta = prec_eta, beta = beta,
@@ -76,7 +77,7 @@ run_fpca_partial <- function(partial_class) {
   }
   members <- list(Y = Y, Y.trans = Y.trans, Y.trans.smoothed = Y.trans.smoothed,
                   Y.trans.smoothed.centered = Y.trans.smoothed.centered,
-                  tt = tt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
+                  tt = tt, nt = nt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
                   omega = omega, mu1 = mu1, mu2 = mu2, psi = psi,
                   phi_cube = phi_cube, phi_mat = phi_mat, lambda = lambda,
                   eta = eta, prec_eta = prec_eta, beta = beta,
@@ -97,7 +98,7 @@ estimate_residual_error_partial <- function(partial_class) {
   }
   members <- list(Y = Y, Y.trans = Y.trans, Y.trans.smoothed = Y.trans.smoothed,
                   Y.trans.smoothed.centered = Y.trans.smoothed.centered,
-                  tt = tt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
+                  tt = tt, nt = nt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
                   omega = omega, mu1 = mu1, mu2 = mu2, psi = psi,
                   phi_cube = phi_cube, phi_mat = phi_mat, lambda = lambda,
                   eta = eta, prec_eta = prec_eta, beta = beta,
@@ -117,7 +118,7 @@ set_size_param_partial <- function(partial_class) {
   prec_eta <- matrix(0, nreg, npc)
   members <- list(Y = Y, Y.trans = Y.trans, Y.trans.smoothed = Y.trans.smoothed,
                   Y.trans.smoothed.centered = Y.trans.smoothed.centered,
-                  tt = tt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
+                  tt = tt, nt = nt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
                   omega = omega, mu1 = mu1, mu2 = mu2, psi = psi,
                   phi_cube = phi_cube, phi_mat = phi_mat, lambda = lambda,
                   eta = eta, prec_eta = prec_eta, beta = beta,
@@ -177,7 +178,7 @@ set_param_partial <- function(partial_class) {
   
   members <- list(Y = Y, Y.trans = Y.trans, Y.trans.smoothed = Y.trans.smoothed,
                   Y.trans.smoothed.centered = Y.trans.smoothed.centered,
-                  tt = tt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
+                  tt = tt, nt = nt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
                   omega = omega, mu1 = mu1, mu2 = mu2, psi = psi,
                   phi_cube = phi_cube, phi_mat = phi_mat, lambda = lambda,
                   eta = eta, prec_eta = prec_eta, beta = beta,

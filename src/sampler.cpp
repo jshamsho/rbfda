@@ -7,19 +7,24 @@ Rcpp::List Sampler::write_data() {
 
 Rcpp::List Sampler::write_control() {
   return(Rcpp::List::create(
+      Rcpp::Named("covstruct", covstruct),
       Rcpp::Named("iterations", dat.iter),
       Rcpp::Named("thin", dat.thin),
       Rcpp::Named("burnin", dat.burnin)
   ));
 }
 
-SamplerPartial::SamplerPartial(Data& dat_, Rcpp::Nullable<Rcpp::List> init_) {
+SamplerPartial::SamplerPartial(std::string covstruct_, 
+                               Data& dat_, Rcpp::Nullable<Rcpp::List> init_) {
+  covstruct = covstruct_;
   dat = dat_;
   pars = ParametersPartial(dat, init_);
   transf = TransformationsPartial(dat, pars);
 }
 
-SamplerWeak::SamplerWeak(Data& dat_, Rcpp::Nullable<Rcpp::List> init_) {
+SamplerWeak::SamplerWeak(std::string covstruct_,
+                         Data& dat_, Rcpp::Nullable<Rcpp::List> init_) {
+  covstruct = covstruct_;
   dat = dat_;
   pars = ParametersWeak(dat, init_);
   transf = TransformationsWeak(dat, pars);
@@ -79,14 +84,13 @@ void SamplerPartial::write_samples() {
   pars.eta_container.slice(pars.current_iter) = pars.eta;
   pars.phi_container(pars.current_iter) = pars.phi;
   pars.sigmasqetai_container.slice(pars.current_iter) = pars.sigmasqetai;
+  pars.sigmasqeta_container.slice(pars.current_iter) = pars.sigmasqeta;
   pars.delta_eta_container.slice(pars.current_iter) = pars.delta_eta;
   pars.nu_container(pars.current_iter) = pars.nu;
   pars.a1_container(pars.current_iter) = pars.a1;
   pars.a2_container(pars.current_iter) = pars.a2;
   pars.a3_container(pars.current_iter) = pars.a3;
   pars.nu_container(pars.current_iter) = pars.nu;
-  // Rcpp::Rcout << pars.nu_container(pars.current_iter) << "\n";
-  // Rcpp::Rcout << current_iter << "\n";
   pars.current_iter++;
 }
 
@@ -100,6 +104,7 @@ Rcpp::List SamplerPartial::get_samples() {
                             Rcpp::Named("xi_eta", pars.xi_eta_container),
                             Rcpp::Named("zeta", pars.zeta_container),
                             Rcpp::Named("phi", pars.phi_container),
+                            Rcpp::Named("sigmasqeta", pars.sigmasqeta_container),
                             Rcpp::Named("sigmasqetai", pars.sigmasqetai_container),
                             Rcpp::Named("delta_eta", pars.delta_eta_container),
                             Rcpp::Named("nu", pars.nu_container),

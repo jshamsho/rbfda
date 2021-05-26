@@ -2,7 +2,7 @@
 
 export(get_posteigenfunc)
 export(get_posteigenvec)
-export(get_posteriormean)
+export(get_postmean)
 export(get_pvals_partial)
 export(get_pvals_weak)
 export(initialize_mcmc_partial)

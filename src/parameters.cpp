@@ -518,7 +518,7 @@ void Parameters::update_xi_eta(const Data& dat, Transformations& transf) {
       for (arma::uword i = 0; i < dat.nsub; i++) {
         idx = i * dat.nreg + r;
         rate = nu / 2. +
-                     .5 * std::pow(eta(idx, l), 2) * sigmasqeta(r, l);
+                     .5 * std::pow(eta(idx, l) - dat.design(i) * beta(r, l), 2) * sigmasqeta(r, l);
         xi_eta(idx, l) = R::rgamma(shape, 1. / rate);
       }
     }
@@ -829,11 +829,11 @@ void ParametersWeak::update_sigmasqeta(const Data& dat) {
 }
 
 void Parameters::update_delta_beta(const Data& dat, Transformations& transf) {
-  double shape = delta_beta_nu / 2. + .5;
-  double rate = delta_beta_nu / 2.;
+  double shape = .5 * (delta_beta_nu + 1);
+  double rate;
   for (arma::uword l = 0; l < dat.ldim; l++) {
     for (arma::uword j = 0; j < dat.designdim * dat.nreg; j++) {
-      rate = rate + .5 * std::pow(beta(j, l), 2.);
+      rate = .5 * (delta_beta_nu + std::pow(beta(j, l), 2.));
       delta_beta(j, l) = R::rgamma(shape, 1. / rate);
     }
   }
@@ -945,6 +945,8 @@ void ParametersPartial::update_phi(const Data& dat, TransformationsPartial& tran
             r - 1, dat.nreg, (dat.ldim - 1) * dat.nreg + r)));
     }
     phi_temp = bayesreg_orth(tmpad, Q, transf.phi_lin_constr.rows(constr_indices));
+    // phi_temp = bayesreg_orth(tmpad, Q, transf.phi_lin_constr);
+    
     for (arma::uword l = 0; l < dat.ldim; l++) {
       norm = arma::norm(phi_temp.rows(l * dat.nreg, (l + 1) * dat.nreg - 1));
       phi.slice(l).col(r) = phi_temp.rows(l * dat.nreg, (l + 1) * dat.nreg - 1) / norm;
@@ -955,21 +957,47 @@ void ParametersPartial::update_phi(const Data& dat, TransformationsPartial& tran
       }
     }
   }
+    // for (arma::uword l = 0; l < dat.ldim; l++) {
+    //   arma::uword rp = arma::index_max(arma::abs(phi_previous.slice(l).col(r)));
+    //   if (phi(rp,r,l) * phi_previous(rp, r, l) < 0) {
+    //     phi.slice(l).col(r) = -phi.slice(l).col(r);
+    //   }
+    // }
+    // for (arma::uword l = 0; l < dat.ldim; l++) {
+    //   // for (arma::uword r = 0; r < dat.nreg; r++) {
+    //     arma::uvec r_ind = arma::regspace<arma::uvec>(r, dat.nreg, (dat.nsub - 1) * dat.nreg + r);
+    //     if (arma::accu(arma::square(phi.slice(l).col(r) + phi_previous.slice(l).col(r))) <
+    //       arma::accu(arma::square(phi.slice(l).col(r) - phi_previous.slice(l).col(r)))) {
+    //       phi.slice(l).col(r) = -phi.slice(l).col(r);
+    //       arma::vec(beta.col(l)).rows(r * dat.designdim,
+    //                 (r + 1) * dat.designdim - 1) =
+    //                   -arma::vec(beta.col(l)).rows(r * dat.designdim,
+    //                              (r + 1) * dat.designdim - 1);
+    //       arma::vec(eta.col(l)).rows(r_ind) = -arma::vec(eta.col(l)).rows(r_ind);
+    //     }
+    //   // }
+    // }
+  // }
   // Align eigenvectors
-  for (arma::uword l = 0; l < dat.ldim; l++) {
-    for (arma::uword r = 0; r < dat.nreg; r++) {
-      arma::uvec r_ind = arma::regspace<arma::uvec>(r, dat.nreg, (dat.nsub - 1) * dat.nreg + r);
-      if (arma::accu(arma::square(phi.slice(l).col(r) + phi_previous.slice(l).col(r))) <
-        arma::accu(arma::square(phi.slice(l).col(r) - phi_previous.slice(l).col(r)))) {
-        phi.slice(l).col(r) = -phi.slice(l).col(r);
-        arma::vec(beta.col(l)).rows(r * dat.designdim,
-                  (r + 1) * dat.designdim - 1) =
-                    -arma::vec(beta.col(l)).rows(r * dat.designdim,
-                               (r + 1) * dat.designdim - 1);
-        arma::vec(eta.col(l)).rows(r_ind) = -arma::vec(eta.col(l)).rows(r_ind);
-      }
-    }
-  }
+  // for (arma::uword l = 0; l < dat.ldim; l++) {
+    // for (arma::uword r = 0; r < dat.nreg; r++) {
+      // arma::uword rp = arma::max(arma::abs(phi_previous.slice(l).col(r)));
+    // }
+  // }
+  // for (arma::uword l = 0; l < dat.ldim; l++) {
+  //   for (arma::uword r = 0; r < dat.nreg; r++) {
+  //     arma::uvec r_ind = arma::regspace<arma::uvec>(r, dat.nreg, (dat.nsub - 1) * dat.nreg + r);
+  //     if (arma::accu(arma::square(phi.slice(l).col(r) + phi_previous.slice(l).col(r))) <
+  //       arma::accu(arma::square(phi.slice(l).col(r) - phi_previous.slice(l).col(r)))) {
+  //       phi.slice(l).col(r) = -phi.slice(l).col(r);
+  //       arma::vec(beta.col(l)).rows(r * dat.designdim,
+  //                 (r + 1) * dat.designdim - 1) =
+  //                   -arma::vec(beta.col(l)).rows(r * dat.designdim,
+  //                              (r + 1) * dat.designdim - 1);
+  //       arma::vec(eta.col(l)).rows(r_ind) = -arma::vec(eta.col(l)).rows(r_ind);
+  //     }
+  //   }
+  // }
 }
 
 void Parameters::update_nu(const Data& dat, Transformations transf) {

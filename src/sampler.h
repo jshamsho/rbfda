@@ -13,6 +13,7 @@ class Parameters;
 class Sampler
 {
 public:
+  std::string covstruct;
   Data dat;
   Sampler() {};
   arma::uword current_iter = 0;
@@ -29,7 +30,7 @@ class SamplerPartial : public Sampler
   public:
     ParametersPartial pars;
     TransformationsPartial transf;
-    SamplerPartial(Data&, Rcpp::Nullable<Rcpp::List>);
+    SamplerPartial(std::string covstruct, Data&, Rcpp::Nullable<Rcpp::List>);
     void sample();
     void write_samples();
     Rcpp::List get_samples();
@@ -41,7 +42,7 @@ class SamplerWeak : public Sampler
 public:
   ParametersWeak pars;
   TransformationsWeak transf;
-  SamplerWeak(Data& dat, Rcpp::Nullable<Rcpp::List>);
+  SamplerWeak(std::string covstruct, Data& dat, Rcpp::Nullable<Rcpp::List>);
   void sample();
   void write_samples();
   arma::vec get_grad(arma::vec&);
@@ -56,9 +57,9 @@ class SamplerFactory {
 public:
   static Sampler *new_mcmc(std::string covstruct, Data& dat, Rcpp::Nullable<Rcpp::List> init_) {
     if(covstruct == "partial") {
-      return new SamplerPartial(dat, init_); 
+      return new SamplerPartial(covstruct, dat, init_); 
     } else if (covstruct == "weak") {
-      return new SamplerWeak(dat, init_);
+      return new SamplerWeak(covstruct, dat, init_);
     }
     return nullptr;
   }
