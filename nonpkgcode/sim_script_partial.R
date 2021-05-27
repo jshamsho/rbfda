@@ -25,9 +25,9 @@ runthis <- function(myseed) {
   nreg <- 6
   ldim <- 4
   ndf <- 15
-  iterations <- 5000
-  thin <- 1
-  burnin <- 1000
+  iterations <- 10000
+  thin <- 5
+  burnin <- 2500
   tt <- seq(from = 0, to = 1, length.out = nt)
   sim_data <- sim_partial(nt, nsub, nreg, ldim = ldim)
   X <- cbind(rep(1, nsub))
@@ -41,8 +41,6 @@ runthis <- function(myseed) {
   result <- run_mcmc(response = sim_data$Y, design = X, basis = B, time = tt,
                      penalty = penalty, ldim = ldim_est, iter = iterations, burnin = burnin,
                      thin = thin, init_ = init_mcmc, covstruct = "partial")
-  pvals <- get_pvals_partial(result)
-  plot(pvals, type = "l")
   eigenfunc_summary <- array(0, dim = c(nt, ldim, 3))
   for (l in 1:ldim) {
     eigenfunc_summary[, l, ] <- get_posteigenfunc(result, l)

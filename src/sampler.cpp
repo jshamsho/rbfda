@@ -58,7 +58,7 @@ void SamplerPartial::sample() {
       pars.update_zeta(dat, transf);
       pars.update_phi(dat, transf);
       pars.update_eta(dat, transf);
-      // pars.update_xi_eta(dat, transf);
+      pars.update_xi_eta(dat, transf);
       pars.update_delta_eta(dat, transf);
       pars.update_beta(dat, transf);
       pars.update_delta_beta(dat, transf);
