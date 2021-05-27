@@ -14,13 +14,13 @@ end <- start + batch_size - 1
 # library(parallel)
 library(rrbfda)
 library(mgcv)
-print(paste("start =", start))
+# print(paste("start =", start))
 # cl <- makeCluster(6)
 # plan(multicore, workers = 6)
 runthis <- function(myseed) {
   print(paste0("Working on seed ", myseed))
   set.seed(myseed)
-  nsub <- 50
+  nsub <- 200
   nt <- 60
   nreg <- 6
   ldim <- 4
@@ -30,7 +30,6 @@ runthis <- function(myseed) {
   burnin <- 1000
   tt <- seq(from = 0, to = 1, length.out = nt)
   sim_data <- sim_partial(nt, nsub, nreg, ldim = ldim)
-  sim_data$Y[,1] <- sim_data$Y[,1] + 1
   X <- cbind(rep(1, nsub))
   basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2),
                               data.frame(tt), absorb.cons = FALSE)
@@ -57,7 +56,7 @@ runthis <- function(myseed) {
                                               c(.5, .025, .975))
     }
   }
-  mean_summary <- get_posteriormean(result, c(1))
+  mean_summary <- get_postmean(result, c(1))
   noise_summary <- 1 / t(apply(result$samples$omega[, (burnin + 1):iterations],
                                1, quantile, c(.5, .975, .025)))
   colnames(noise_summary) <- c("50%", "2.5%", "97.5%")
@@ -74,7 +73,7 @@ runthis <- function(myseed) {
                    noise_summary = noise_summary,
                    pvals = pvals)
   
-  outfile <- paste0("/Users/johnshamshoian/Documents/R_projects/rrbfda/output/n50_simpartial_fitpartial/n50_simpartial_fitpartial", myseed, ".RData")
+  outfile <- paste0("/Users/johnshamshoian/Documents/R_projects/rrbfda/output/n200_simpartial_fitpartial/n200_simpartial_fitpartial", myseed, ".RData")
   save(simstats, file = outfile)
   NULL
 }

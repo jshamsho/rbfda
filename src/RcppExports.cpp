@@ -6,11 +6,6 @@
 
 using namespace Rcpp;
 
-#ifdef RCPP_USE_GLOBAL_ROSTREAM
-Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
-Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
-#endif
-
 // run_mcmc
 Rcpp::List run_mcmc(arma::mat response, arma::mat design, arma::mat basis, arma::vec time, arma::mat penalty, arma::uword ldim, arma::uword iter, arma::uword burnin, arma::uword thin, Rcpp::Nullable<Rcpp::List> init_, std::string covstruct);
 RcppExport SEXP _rrbfda_run_mcmc(SEXP responseSEXP, SEXP designSEXP, SEXP basisSEXP, SEXP timeSEXP, SEXP penaltySEXP, SEXP ldimSEXP, SEXP iterSEXP, SEXP burninSEXP, SEXP thinSEXP, SEXP init_SEXP, SEXP covstructSEXP) {

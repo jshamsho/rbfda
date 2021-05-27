@@ -927,14 +927,18 @@ void ParametersPartial::update_phi(const Data& dat, TransformationsPartial& tran
         transf.psi * diageta);
       for (arma::uword rp = 0; rp < dat.nreg; rp++) {
         if (rp != r) {
+          // tmprm = tmprm + arma::vectorise(diagomega *
+            // arma::mat(phi.col(rp)) *
+            // arma::as_scalar(eta.row(i * dat.nreg + rp) * eta.row(idx).t()));
           tmprm = tmprm + arma::vectorise(diagomega *
             arma::mat(phi.col(rp)) *
-            arma::as_scalar(eta.row(i * dat.nreg + rp) * eta.row(idx).t()));
+            arma::diagmat(eta.row(i * dat.nreg + rp)) * diageta);
         }
       }
       eta_sum = eta_sum + diageta * diageta;
     }
     b = tmpad - tmprm;
+    // b = tmpad;
     Q = arma::kron(eta_sum, diagomega) +
       arma::eye(dat.nreg * dat.ldim, dat.nreg * dat.ldim);
     if (r > 0) {

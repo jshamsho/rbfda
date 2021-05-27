@@ -33,7 +33,6 @@ Rcpp::List run_mcmc(arma::mat response, arma::mat design,
                     arma::uword ldim, arma::uword iter, arma::uword burnin,
                     arma::uword thin = 1, Rcpp::Nullable<Rcpp::List> init_ = R_NilValue,
                     std::string covstruct = "partial") {
-  
   Data dat(response, design,
            basis, time,
            penalty, ldim,
