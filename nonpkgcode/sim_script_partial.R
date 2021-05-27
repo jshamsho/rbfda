@@ -958,49 +958,49 @@ parallel::mclapply(start:end, runthis, mc.cores = num_cores)
 # sum((init_mcmc$psi[,efunc] - sim_data$psi[,efunc])^2)
 # sum((B %*% apply(result$samples$lambda[,efunc,], 1, median) - sim_data$psi[,efunc])^2)
 # 
-r <- 1
-i <- 50
-plot(sim_data$Y[((i - 1) * nt + 1):(i * nt),r])
-seqr <- ((i - 1) * nreg + 1):(i * nreg)
-for (i in 201:5000) {
-  tmpsum <- numeric(nt)
-  for (l in 1:ldim_est) {
-    tmpsum <- tmpsum + B %*% result$samples$lambda[,l, i] %*%
-      t(result$samples$phi[[i]][r,,l]) %*%
-      result$samples$eta[seqr, l, i]
-  }
-  lines(tmpsum, col = "blue")
-}
+# r <- 1
+# i <- 50
+# plot(sim_data$Y[((i - 1) * nt + 1):(i * nt),r])
+# seqr <- ((i - 1) * nreg + 1):(i * nreg)
+# for (i in 201:5000) {
+#   tmpsum <- numeric(nt)
+#   for (l in 1:ldim_est) {
+#     tmpsum <- tmpsum + B %*% result$samples$lambda[,l, i] %*%
+#       t(result$samples$phi[[i]][r,,l]) %*%
+#       result$samples$eta[seqr, l, i]
+#   }
+#   lines(tmpsum, col = "blue")
+# }
 
-r <- 1
-x_vec <- c(1)
-plot(rep(0, nt), type = "l", ylim = c(-5,5))
-d <- length(x_vec)
-for (i in 1001:5000) {
-  tmpsum <- numeric(nt)
-  for (l in 1:ldim_est) {
-    tmpsum <- tmpsum + B %*% result$samples$lambda[,l,i] %*% 
-      t(t(matrix(result$samples$beta[,l,i], d, nreg)) %*% x_vec) %*%
-      result$samples$phi[[i]][r, , l]
-  }
-  lines(tmpsum, col = "blue")
-}
-abline(h = 1, col = "red")
+# r <- 1
+# x_vec <- c(1)
+# plot(rep(0, nt), type = "l", ylim = c(-5,5))
+# d <- length(x_vec)
+# for (i in 1001:5000) {
+#   tmpsum <- numeric(nt)
+#   for (l in 1:ldim_est) {
+#     tmpsum <- tmpsum + B %*% result$samples$lambda[,l,i] %*% 
+#       t(t(matrix(result$samples$beta[,l,i], d, nreg)) %*% x_vec) %*%
+#       result$samples$phi[[i]][r, , l]
+#   }
+#   lines(tmpsum, col = "blue")
+# }
+# abline(h = 1, col = "red")
 
-r <- 2
-x_vec <- c(1)
-plot(rep(0, nt), type = "l", ylim = c(-5,5))
-d <- length(x_vec)
-for (iter in 1001:5000) {
-  tmpsum <- numeric(nt)
-  for (l in 1:ldim_est) {
-    tmpsum <- tmpsum + 
-      B %*% result$samples$lambda[, l, iter] %*%
-      result$samples$phi[[iter]][r,,l] %*% 
-      t(matrix(result$samples$beta[,l,iter], d)) %*% x_vec
-  }
-  lines(tmpsum, col = "blue")
-}
+# r <- 2
+# x_vec <- c(1)
+# plot(rep(0, nt), type = "l", ylim = c(-5,5))
+# d <- length(x_vec)
+# for (iter in 1001:5000) {
+#   tmpsum <- numeric(nt)
+#   for (l in 1:ldim_est) {
+#     tmpsum <- tmpsum + 
+#       B %*% result$samples$lambda[, l, iter] %*%
+#       result$samples$phi[[iter]][r,,l] %*% 
+#       t(matrix(result$samples$beta[,l,iter], d)) %*% x_vec
+#   }
+#   lines(tmpsum, col = "blue")
+# }
 
 # delta_eta_cumprod <- array(0, dim = c(nreg, init_mcmc$npc, 5000))
 # for (i in 1:5000) {

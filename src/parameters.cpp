@@ -944,7 +944,7 @@ void ParametersPartial::update_phi(const Data& dat, TransformationsPartial& tran
           arma::regspace<arma::uvec>(
             r - 1, dat.nreg, (dat.ldim - 1) * dat.nreg + r)));
     }
-    phi_temp = bayesreg_orth(tmpad, Q, transf.phi_lin_constr.rows(constr_indices));
+    phi_temp = bayesreg_orth(b, Q, transf.phi_lin_constr.rows(constr_indices));
     // phi_temp = bayesreg_orth(tmpad, Q, transf.phi_lin_constr);
     
     for (arma::uword l = 0; l < dat.ldim; l++) {
