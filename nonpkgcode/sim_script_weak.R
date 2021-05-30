@@ -19,26 +19,28 @@ print(paste("start =", start))
 runthis <- function(myseed) {
   print(paste0("Working on seed ", myseed))
   set.seed(myseed)
-  nsub <- 200
+  nsub <- 100
   nt <- 60
   nreg <- 6
   ldim <- 4
   ndf <- 15
-  iterations <- 10000
-  thin <- 5
-  burnin <- 2500
+  iterations <- 5000
+  thin <- 1
+  burnin <- 1000
   tt <- seq(from = 0, to = 1, length.out = nt)
-  sim_data <- sim_partial(nt, nsub, nreg, ldim = ldim)
+  sim_data <- sim_weak(nt, nsub, nreg, ldim = ldim)
   X <- cbind(rep(1, nsub))
   basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2),
   data.frame(tt), absorb.cons = FALSE)
   B <- basisobj[[1]]$X
   penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
-  init_mcmc <- rrbfda::initialize_mcmc_weak(sim_data$Y, tt, B, X)
+  init_mcmc <- rrbfda::initialize_mcmc_partial(sim_data$Y, tt, B, X)
   ldim_est <- ncol(init_mcmc$lambda)
   result <- run_mcmc(response = sim_data$Y, design = X, basis = B, time = tt,
-  penalty = penalty, ldim = ldim_est, iter = iterations, burnin = burnin,
-  thin = thin, init_ = init_mcmc, covstruct = "weak")
+                     penalty = penalty, ldim = ldim_est, iter = iterations, burnin = burnin,
+                     thin = thin, init_ = init_mcmc, covstruct = "partial")
+  pvals_partial <- get_pvals_partial(result)
+  hist(pvals_partial)
   eigenfunc_summary <- array(0, dim = c(nt, ldim, 3))
   for (l in 1:ldim) {
     eigenfunc_summary[, l, ] <- get_posteigenfunc(result, l)
@@ -276,16 +278,17 @@ parallel::mclapply(start:end, runthis, mc.cores = 6)
 # sum((init_mcmc$psi[,efunc] - sim_data$psi[,efunc])^2)
 # sum((B %*% apply(result$samples$lambda[,efunc,], 1, mean) - sim_data$psi[,efunc])^2)
 # 
-# r <- 4
-# i <- 50
-# plot(sim_data$Y[((i - 1) * nt + 1):(i * nt),r])
-# seqr <- ((i - 1) * nreg + 1):(i * nreg)
-# for (i in burnin:iterations) {
-#   est <- B %*% result$samples$lambda[,, i] %*% 
-#       t(result$samples$eta[seqr, , i]) %*%
-#       result$samples$phi[r,,i]
-#   lines(est, col = "green")
-# }
+r <- 1
+i <- 100
+plot(sim_data$Y[((i - 1) * nt + 1):(i * nt),r])
+seqr <- ((i - 1) * nreg + 1):(i * nreg)
+for (i in burnin:iterations) {
+  est <- B %*% result$samples$lambda[,, i] %*%
+      t(result$samples$eta[seqr, , i]) %*%
+      t(result$samples$phi[,,i])
+  lines(est[,r], col = "blue")
+  # lines(est, col = "green")
+}
 # 
 # num_iter <- 5000
 # delta_eta_cumprod <- array(0, dim = c(nreg, ldim, num_iter))

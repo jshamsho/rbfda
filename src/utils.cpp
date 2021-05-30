@@ -546,6 +546,140 @@ arma::mat reshape_nreg(arma::mat eta, arma::uword nsub, arma::uword nreg) {
   }
   return etamat;
 }
+
+Rcpp::List calculate_waic_partial(Rcpp::List result) {
+  Rcpp::List control = result["control"];
+  Rcpp::List data = result["data"];
+  Rcpp::List samples = result["samples"];
+  arma::mat Y = data["response"];
+  arma::mat B = data["basis"];
+  arma::uword burnin = control["burnin"];
+  arma::uword iterations = control["iterations"];
+  arma::mat omega = samples["omega"];
+  arma::cube lambda = samples["lambda"];
+  arma::cube eta = samples["eta"];
+  arma::field<arma::cube> phi = samples["phi"];
+  arma::uword nt = B.n_rows;
+  arma::uword nreg = omega.n_rows;
+  arma::uword nsub = eta.slice(0).n_rows / nreg;
+  arma::uword ldim = phi(0).n_slices;
+  arma::mat prediction(nt, nreg);
+  arma::vec loglik = arma::vec(nt * nsub * nreg);
+  arma::running_stat_vec<arma::vec> running_loglik;
+  arma::uword start, end, start_eta, end_eta, start_loglik, end_loglik;
+  for (arma::uword iter = burnin; iter < iterations; iter++) {
+    arma::mat sdmat = arma::repmat(arma::pow(omega.col(iter).t(), -.5) , nt, 1);
+    for (arma::uword i = 0; i < nsub; i++) {
+      prediction.zeros();
+      start = i * nt;
+      end = (i + 1) * nt - 1;
+      start_eta = i * nreg;
+      end_eta = (i + 1) * nreg - 1;
+      start_loglik = i * nt * nreg;
+      end_loglik = (i + 1) * nt * nreg - 1;
+      for (arma::uword l = 0; l < ldim; l++) {
+        prediction = prediction +
+          B * lambda.slice(iter).col(l) *
+          eta.slice(iter).col(l).rows(start_eta, end_eta).t() *
+          phi(iter).slice(l).t();
+      }
+      loglik.rows(start_loglik, end_loglik) = 
+        arma::vectorise(arma::log_normpdf(Y.rows(start, end), prediction, sdmat));
+    }
+    running_loglik(loglik);
+  }
+  
+  double lppd = arma::accu(running_loglik.mean());
+  double pwaic = arma::accu(running_loglik.var());
+  double waic = -2 * (lppd - pwaic);
+  arma::vec waic_vec = -2 * (running_loglik.mean() - running_loglik.var());
+  double waic_se = std::sqrt(arma::var(waic_vec) * loglik.n_elem);
+  return(Rcpp::List::create(Rcpp::Named("waic", waic),
+                            Rcpp::Named("pwaic", pwaic),
+                            Rcpp::Named("lppd", lppd),
+                            Rcpp::Named("waic_se", waic_se),
+                            Rcpp::Named("waic_vec", waic_vec)));
+}
+
+Rcpp::List calculate_waic_weak(Rcpp::List result) {
+  Rcpp::List control = result["control"];
+  Rcpp::List data = result["data"];
+  Rcpp::List samples = result["samples"];
+  arma::mat Y = data["response"];
+  arma::mat B = data["basis"];
+  arma::uword burnin = control["burnin"];
+  arma::uword iterations = control["iterations"];
+  arma::mat omega = samples["omega"];
+  arma::cube lambda = samples["lambda"];
+  arma::cube eta = samples["eta"];
+  arma::cube phi = samples["phi"];
+  arma::uword nt = B.n_rows;
+  arma::uword nreg = omega.n_rows;
+  arma::uword nsub = eta.slice(0).n_rows / nreg;
+  arma::uword ldim = lambda.slice(0).n_cols;
+  arma::mat prediction(nt, nreg);
+  arma::vec loglik = arma::vec(nt * nsub * nreg);
+  arma::running_stat_vec<arma::vec> running_loglik;
+  arma::uword start, end, start_eta, end_eta, start_loglik, end_loglik;
+  for (arma::uword iter = burnin; iter < iterations; iter++) {
+    arma::mat sdmat = arma::repmat(arma::pow(omega.col(iter).t(), -.5) , nt, 1);
+    for (arma::uword i = 0; i < nsub; i++) {
+      prediction.zeros();
+      start = i * nt;
+      end = (i + 1) * nt - 1;
+      start_eta = i * nreg;
+      end_eta = (i + 1) * nreg - 1;
+      start_loglik = i * nt * nreg;
+      end_loglik = (i + 1) * nt * nreg - 1;
+      prediction = prediction +
+        B * lambda.slice(iter) *
+        eta.slice(iter).rows(start_eta, end_eta).t() *
+        phi.slice(iter).t();
+      
+      loglik.rows(start_loglik, end_loglik) = 
+        arma::vectorise(arma::log_normpdf(Y.rows(start, end), prediction, sdmat));
+    }
+    running_loglik(loglik);
+  }
+  
+  double lppd = arma::accu(running_loglik.mean());
+  double pwaic = arma::accu(running_loglik.var());
+  double waic = -2 * (lppd - pwaic);
+  arma::vec waic_vec = -2 * (running_loglik.mean() - running_loglik.var());
+  double waic_se = std::sqrt(arma::var(waic_vec) * loglik.n_elem);
+  return(Rcpp::List::create(Rcpp::Named("waic", waic),
+                            Rcpp::Named("pwaic", pwaic),
+                            Rcpp::Named("lppd", lppd),
+                            Rcpp::Named("waic_se", waic_se),
+                            Rcpp::Named("waic_vec", waic_vec)));
+}
+
+// [[Rcpp::export]]
+Rcpp::List compare_waic(Rcpp::List waic1, Rcpp::List waic2) {
+  double elpd1 = waic1["waic"];
+  double elpd2 = waic2["waic"];
+  double diff = elpd1 - elpd2;
+  arma::vec elpd_vec1 = waic1["waic_vec"];
+  arma::vec elpd_vec2 = waic2["waic_vec"];
+  arma::vec diff_vec = elpd_vec1 - elpd_vec2;
+  double diff_se = std::sqrt(arma::var(diff_vec) * elpd_vec1.n_elem);
+  return(Rcpp::List::create(Rcpp::Named("diff", diff),
+                            Rcpp::Named("diff_se", diff_se)));
+}
+
+// [[Rcpp::export]]
+Rcpp::List calculate_waic(Rcpp::List result) {
+  Rcpp::List control = result["control"];
+  std::string covstruct = control["covstruct"];
+  Rcpp::List waic;
+  if (covstruct == "partial") {
+    waic = calculate_waic_partial(result);
+  } else if (covstruct == "weak") {
+    waic = calculate_waic_weak(result);
+  }
+  return waic;
+}
+
 // 
 // arma::mat leapfrog(arma::vec q, arma::vec p, arma::vec grad,
 //                    arma::uword steps, double step_size) {

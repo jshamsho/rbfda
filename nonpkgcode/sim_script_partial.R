@@ -25,11 +25,11 @@ runthis <- function(myseed) {
   nreg <- 6
   ldim <- 4
   ndf <- 15
-  iterations <- 10000
-  thin <- 5
-  burnin <- 2500
+  iterations <- 5000
+  thin <- 1
+  burnin <- 1000
   tt <- seq(from = 0, to = 1, length.out = nt)
-  sim_data <- sim_partial(nt, nsub, nreg, ldim = ldim)
+  sim_data <- sim_non_partial(nt, nsub, nreg, ldim = ldim)
   X <- cbind(rep(1, nsub))
   basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2),
                               data.frame(tt), absorb.cons = FALSE)

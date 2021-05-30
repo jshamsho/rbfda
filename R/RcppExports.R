@@ -71,3 +71,11 @@ reshape_nreg <- function(eta, nsub, nreg) {
     .Call('_rrbfda_reshape_nreg', PACKAGE = 'rrbfda', eta, nsub, nreg)
 }
 
+compare_waic <- function(waic1, waic2) {
+    .Call('_rrbfda_compare_waic', PACKAGE = 'rrbfda', waic1, waic2)
+}
+
+calculate_waic <- function(result) {
+    .Call('_rrbfda_calculate_waic', PACKAGE = 'rrbfda', result)
+}
+

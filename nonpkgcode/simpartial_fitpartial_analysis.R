@@ -1,10 +1,10 @@
 # any(dir() == paste0("n50_simweak_fitweak", 1:2, ".RData"))
-setwd("/Users/johnshamshoian/Documents/R_projects/rrbfda/output/n200_simpartial_fitpartial")
-runthese <- which(sapply(1:300, function(i) any(dir() == paste0("n200_simpartial_fitpartial", i, ".RData"))))
+setwd("/Users/johnshamshoian/Documents/R_projects/rrbfda/output/n50_simpartial_fitpartial")
+runthese <- which(sapply(1:300, function(i) any(dir() == paste0("n50_simpartial_fitpartial", i, ".RData"))))
 nreg <- 6
 ldim <- 4
 nt <- 60
-nsub <- 200
+nsub <- 50
 tt <- seq(from = 0, to = 1, length.out = 60)
 nsim <- length(runthese)
 true_eigenfunc <- fda::getbasismatrix(tt, fda::create.fourier.basis(nbasis = ldim))
@@ -20,7 +20,7 @@ for (num in runthese) {
   
   loadthis <- paste0("/Users/johnshamshoian/Documents/", 
                      "R_projects/rrbfda/output/",
-                     "n200_simpartial_fitpartial/n200_simpartial_fitpartial", 
+                     "n50_simpartial_fitpartial/n50_simpartial_fitpartial", 
                      num, ".RData")
   load(loadthis)
   # true_eigenvec <- simstats$sim_data$phi
