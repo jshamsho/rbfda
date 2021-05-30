@@ -71,11 +71,13 @@ reshape_nreg <- function(eta, nsub, nreg) {
     .Call('_rrbfda_reshape_nreg', PACKAGE = 'rrbfda', eta, nsub, nreg)
 }
 
+#' Compare WAIC from two models
 #' @export compare_waic
 compare_waic <- function(waic1, waic2) {
     .Call('_rrbfda_compare_waic', PACKAGE = 'rrbfda', waic1, waic2)
 }
 
+#' Calculate WAIC from partially or weakly separable model
 #' @export calculate_waic
 calculate_waic <- function(result) {
     .Call('_rrbfda_calculate_waic', PACKAGE = 'rrbfda', result)

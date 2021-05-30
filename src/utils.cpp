@@ -654,6 +654,7 @@ Rcpp::List calculate_waic_weak(Rcpp::List result) {
                             Rcpp::Named("waic_vec", waic_vec)));
 }
 
+//' Compare WAIC from two models
 //' @export compare_waic
 //[[Rcpp::export]]
 Rcpp::List compare_waic(Rcpp::List waic1, Rcpp::List waic2) {
@@ -668,6 +669,7 @@ Rcpp::List compare_waic(Rcpp::List waic1, Rcpp::List waic2) {
                             Rcpp::Named("diff_se", diff_se)));
 }
 
+//' Calculate WAIC from partially or weakly separable model
 //' @export calculate_waic
 // [[Rcpp::export]]
 Rcpp::List calculate_waic(Rcpp::List result) {
