@@ -204,29 +204,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// compare_waic
-Rcpp::List compare_waic(Rcpp::List waic1, Rcpp::List waic2);
-RcppExport SEXP _rrbfda_compare_waic(SEXP waic1SEXP, SEXP waic2SEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type waic1(waic1SEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type waic2(waic2SEXP);
-    rcpp_result_gen = Rcpp::wrap(compare_waic(waic1, waic2));
-    return rcpp_result_gen;
-END_RCPP
-}
-// calculate_waic
-Rcpp::List calculate_waic(Rcpp::List result);
-RcppExport SEXP _rrbfda_calculate_waic(SEXP resultSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type result(resultSEXP);
-    rcpp_result_gen = Rcpp::wrap(calculate_waic(result));
-    return rcpp_result_gen;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_rrbfda_run_mcmc", (DL_FUNC) &_rrbfda_run_mcmc, 11},
@@ -242,8 +219,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rrbfda_gam_trunc_right", (DL_FUNC) &_rrbfda_gam_trunc_right, 3},
     {"_rrbfda_normal_trunc_left", (DL_FUNC) &_rrbfda_normal_trunc_left, 3},
     {"_rrbfda_reshape_nreg", (DL_FUNC) &_rrbfda_reshape_nreg, 3},
-    {"_rrbfda_compare_waic", (DL_FUNC) &_rrbfda_compare_waic, 2},
-    {"_rrbfda_calculate_waic", (DL_FUNC) &_rrbfda_calculate_waic, 1},
     {NULL, NULL, 0}
 };
 

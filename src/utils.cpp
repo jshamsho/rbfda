@@ -654,7 +654,7 @@ Rcpp::List calculate_waic_weak(Rcpp::List result) {
                             Rcpp::Named("waic_vec", waic_vec)));
 }
 
-// [[Rcpp::export]]
+//' @export compare_waic
 Rcpp::List compare_waic(Rcpp::List waic1, Rcpp::List waic2) {
   double elpd1 = waic1["waic"];
   double elpd2 = waic2["waic"];
@@ -667,7 +667,7 @@ Rcpp::List compare_waic(Rcpp::List waic1, Rcpp::List waic2) {
                             Rcpp::Named("diff_se", diff_se)));
 }
 
-// [[Rcpp::export]]
+//' @export calculate_waic
 Rcpp::List calculate_waic(Rcpp::List result) {
   Rcpp::List control = result["control"];
   std::string covstruct = control["covstruct"];

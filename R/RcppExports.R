@@ -23,6 +23,12 @@ run_mcmc <- function(response, design, basis, time, penalty, ldim, iter, burnin,
     .Call('_rrbfda_run_mcmc', PACKAGE = 'rrbfda', response, design, basis, time, penalty, ldim, iter, burnin, thin, init_, covstruct)
 }
 
+#' @export compare_waic
+NULL
+
+#' @export calculate_waic
+NULL
+
 get_delta_eta_density <- function(delta_eta1, delta_eta2, eta, beta, xi_eta, design) {
     .Call('_rrbfda_get_delta_eta_density', PACKAGE = 'rrbfda', delta_eta1, delta_eta2, eta, beta, xi_eta, design)
 }
@@ -69,13 +75,5 @@ normal_trunc_left <- function(a, b, cut) {
 
 reshape_nreg <- function(eta, nsub, nreg) {
     .Call('_rrbfda_reshape_nreg', PACKAGE = 'rrbfda', eta, nsub, nreg)
-}
-
-compare_waic <- function(waic1, waic2) {
-    .Call('_rrbfda_compare_waic', PACKAGE = 'rrbfda', waic1, waic2)
-}
-
-calculate_waic <- function(result) {
-    .Call('_rrbfda_calculate_waic', PACKAGE = 'rrbfda', result)
 }
 
