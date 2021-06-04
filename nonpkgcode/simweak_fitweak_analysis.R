@@ -1,8 +1,8 @@
 library(tidyverse)
-runthese <- paste0("n200_simnonpartial_fitpartial", 1:200, ".RData") %in% 
+runthese <- paste0("n50_simweak_fitweak", 1:300, ".RData") %in% 
   dir(paste0("/Users/johnshamshoian/Documents/",
              "R_projects/rrbfda/output/",
-             "n200_simnonpartial_fitpartial")) %>%
+             "n50_simweak_fitweak")) %>%
   which()
 
 nsim <- length(runthese)
@@ -10,6 +10,10 @@ nreg <- 6
 ldim <- 4
 nt <- 60
 nsub <- 200
+M <- 200
+iterations <- 7500
+q_M <- seq(from = 0.005, to = .995, length.out = M)
+order_pdm <- floor(quantile(1:iterations, q_M))
 tt <- seq(from = 0, to = 1, length.out = 60)
 true_eigenfunc <- fda::getbasismatrix(tt, fda::create.fourier.basis(nbasis = ldim))
 mean_accuracy <- matrix(0, nreg, nsim)
@@ -20,14 +24,18 @@ eigenvec_accuracy <- matrix(0, nreg, nsim)
 eigenvec_coverage <- matrix(0, nreg, nsim)
 eigenval_accuracy <- numeric(nsim)
 eigenval_coverage <- numeric(nsim)
+mean_zscore <- numeric(nsim)
+median_zscore <- numeric(nsim)
 mean_pval <- numeric(nsim)
 median_pval <- numeric(nsim)
+
+yjpmin <- numeric(nsim)
 i <- 1
 for (num in runthese) {
   
   loadthis <- paste0("/Users/johnshamshoian/Documents/", 
                      "R_projects/rrbfda/output/",
-                     "n200_simnonpartial_fitpartial/n200_simnonpartial_fitpartial", 
+                     "n50_simweak_fitweak/n50_simweak_fitweak", 
                      num, ".RData")
   load(loadthis)
   true_eigenvec <- simstats$sim_data$phi
@@ -65,13 +73,29 @@ for (num in runthese) {
   # eigenval_coverage[i] <- mean((simstats$eigenval_summary[,,2] <= simstats$sim_data$sigma_mat) &
   #                                  (simstats$eigenval_summary[,,3] >= simstats$sim_data$sigma))
   # 
+  mean_zscore[i] <- pnorm(mean(qnorm(simstats$pvals)))
+  median_zscore[i] <- pnorm(median(qnorm(simstats$pvals)))
+  pvals_sorted <- sort(simstats$pvals, decreasing = TRUE)
+  q_pval <- pvals_sorted[order_pdm]
   mean_pval[i] <- mean(simstats$pvals)
   median_pval[i] <- median(simstats$pvals)
+  yjpmin[i] <- min(1, iterations * (q_pval) / (iterations - order_pdm + 1))
+
   i <- i + 1
 }
+round(sum(yjpmin < .05) / nsim * 100, 2)
 round(sum(mean_pval < .05) / nsim * 100, 2)
-round(sum(mean_pval < .10) / nsim * 100, 2)
+round(sum(mean_zscore < .05) / nsim * 100, 2)
+round(sum(median_zscore < .05) / nsim * 100, 2)
+# round(sum(mean_pval < .10) / nsim * 100, 2)
 round(mean(apply(mean_accuracy, 1, median)) * 1e3, digits = 2)
 # apply(eigenfunc_accuracy, 1, quantile, c(.025, .5, .975))
 round(apply(eigenfunc_accuracy, 1, median) * 1e3, digits = 2)
 round(apply(eigenvec_accuracy, 1, median) * 1e3, digits = 2)
+
+# 
+# zscore <- -qnorm(simstats$pvals)
+# quant <- seq(from = .005, to = .995, by = .005)
+# 
+# 1 - max(0, (iterations * pnorm(quantile(zscore, quant)) - quant * iterations + 1) /  (iterations - iterations * quant + 1))
+# mean(simstats$pvals)

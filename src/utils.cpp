@@ -564,9 +564,10 @@ Rcpp::List calculate_waic_partial(Rcpp::List result) {
   arma::uword nsub = eta.slice(0).n_rows / nreg;
   arma::uword ldim = phi(0).n_slices;
   arma::mat prediction(nt, nreg);
-  arma::vec loglik = arma::vec(nt * nsub * nreg);
+  arma::vec likelihood = arma::vec(nt * nsub * nreg);
+  arma::running_stat_vec<arma::vec> running_likelihood;
   arma::running_stat_vec<arma::vec> running_loglik;
-  arma::uword start, end, start_eta, end_eta, start_loglik, end_loglik;
+  arma::uword start, end, start_eta, end_eta, start_ll, end_ll;
   for (arma::uword iter = burnin; iter < iterations; iter++) {
     arma::mat sdmat = arma::repmat(arma::pow(omega.col(iter).t(), -.5) , nt, 1);
     for (arma::uword i = 0; i < nsub; i++) {
@@ -575,30 +576,36 @@ Rcpp::List calculate_waic_partial(Rcpp::List result) {
       end = (i + 1) * nt - 1;
       start_eta = i * nreg;
       end_eta = (i + 1) * nreg - 1;
-      start_loglik = i * nt * nreg;
-      end_loglik = (i + 1) * nt * nreg - 1;
+      start_ll = i * nt * nreg;
+      end_ll = (i + 1) * nt * nreg - 1;
       for (arma::uword l = 0; l < ldim; l++) {
         prediction = prediction +
           B * lambda.slice(iter).col(l) *
           eta.slice(iter).col(l).rows(start_eta, end_eta).t() *
           phi(iter).slice(l).t();
       }
-      loglik.rows(start_loglik, end_loglik) = 
-        arma::vectorise(arma::log_normpdf(Y.rows(start, end), prediction, sdmat));
+      likelihood.rows(start_ll, end_ll) = 
+        arma::vectorise(arma::normpdf(Y.rows(start, end), prediction, sdmat));
     }
-    running_loglik(loglik);
+    running_likelihood(likelihood);
+    running_loglik(arma::log(likelihood));
+    
   }
   
-  double lppd = arma::accu(running_loglik.mean());
+  double lppd = arma::accu(arma::log(running_likelihood.mean()));
   double pwaic = arma::accu(running_loglik.var());
   double waic = -2 * (lppd - pwaic);
-  arma::vec waic_vec = -2 * (running_loglik.mean() - running_loglik.var());
-  double waic_se = std::sqrt(arma::var(waic_vec) * loglik.n_elem);
+  arma::vec waic_vec = -2 * (running_likelihood.mean() - running_loglik.var());
+  arma::vec pwaic_vec = running_loglik.var();
+  arma::vec lppd_vec = arma::log(running_likelihood.mean());
+  double waic_se = std::sqrt(arma::var(waic_vec) * likelihood.n_elem);
   return(Rcpp::List::create(Rcpp::Named("waic", waic),
                             Rcpp::Named("pwaic", pwaic),
                             Rcpp::Named("lppd", lppd),
                             Rcpp::Named("waic_se", waic_se),
-                            Rcpp::Named("waic_vec", waic_vec)));
+                            Rcpp::Named("waic_vec", waic_vec),
+                            Rcpp::Named("pwaic_vec", pwaic_vec),
+                            Rcpp::Named("lppd_vec", lppd_vec)));
 }
 
 Rcpp::List calculate_waic_weak(Rcpp::List result) {
@@ -618,9 +625,10 @@ Rcpp::List calculate_waic_weak(Rcpp::List result) {
   arma::uword nsub = eta.slice(0).n_rows / nreg;
   arma::uword ldim = lambda.slice(0).n_cols;
   arma::mat prediction(nt, nreg);
-  arma::vec loglik = arma::vec(nt * nsub * nreg);
+  arma::vec likelihood = arma::vec(nt * nsub * nreg);
+  arma::running_stat_vec<arma::vec> running_likelihood;
   arma::running_stat_vec<arma::vec> running_loglik;
-  arma::uword start, end, start_eta, end_eta, start_loglik, end_loglik;
+  arma::uword start, end, start_eta, end_eta, start_ll, end_ll;
   for (arma::uword iter = burnin; iter < iterations; iter++) {
     arma::mat sdmat = arma::repmat(arma::pow(omega.col(iter).t(), -.5) , nt, 1);
     for (arma::uword i = 0; i < nsub; i++) {
@@ -629,24 +637,27 @@ Rcpp::List calculate_waic_weak(Rcpp::List result) {
       end = (i + 1) * nt - 1;
       start_eta = i * nreg;
       end_eta = (i + 1) * nreg - 1;
-      start_loglik = i * nt * nreg;
-      end_loglik = (i + 1) * nt * nreg - 1;
+      start_ll = i * nt * nreg;
+      end_ll = (i + 1) * nt * nreg - 1;
       prediction = prediction +
         B * lambda.slice(iter) *
         eta.slice(iter).rows(start_eta, end_eta).t() *
         phi.slice(iter).t();
       
-      loglik.rows(start_loglik, end_loglik) = 
+      likelihood.rows(start_ll, end_ll) = 
         arma::vectorise(arma::log_normpdf(Y.rows(start, end), prediction, sdmat));
     }
-    running_loglik(loglik);
+    running_likelihood(likelihood);
+    running_loglik(arma::log(likelihood));
   }
   
-  double lppd = arma::accu(running_loglik.mean());
+  double lppd = arma::accu(arma::log(running_likelihood.mean()));
   double pwaic = arma::accu(running_loglik.var());
   double waic = -2 * (lppd - pwaic);
-  arma::vec waic_vec = -2 * (running_loglik.mean() - running_loglik.var());
-  double waic_se = std::sqrt(arma::var(waic_vec) * loglik.n_elem);
+  arma::vec waic_vec = -2 * (running_likelihood.mean() - running_loglik.var());
+  arma::vec pwaic_vec = running_loglik.var();
+  arma::vec lppd_vec = arma::log(running_likelihood.mean());
+  double waic_se = std::sqrt(arma::var(waic_vec) * likelihood.n_elem);
   return(Rcpp::List::create(Rcpp::Named("waic", waic),
                             Rcpp::Named("pwaic", pwaic),
                             Rcpp::Named("lppd", lppd),
