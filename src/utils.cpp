@@ -645,7 +645,7 @@ Rcpp::List calculate_waic_weak(Rcpp::List result) {
         phi.slice(iter).t();
       
       likelihood.rows(start_ll, end_ll) = 
-        arma::vectorise(arma::log_normpdf(Y.rows(start, end), prediction, sdmat));
+        arma::vectorise(arma::normpdf(Y.rows(start, end), prediction, sdmat));
     }
     running_likelihood(likelihood);
     running_loglik(arma::log(likelihood));

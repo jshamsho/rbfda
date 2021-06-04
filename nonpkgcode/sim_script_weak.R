@@ -24,9 +24,9 @@ runthis <- function(myseed) {
   nreg <- 6
   ldim <- 4
   ndf <- 15
-  iterations <- 5000
+  iterations <- 100
   thin <- 1
-  burnin <- 1000
+  burnin <- 25
   tt <- seq(from = 0, to = 1, length.out = nt)
   sim_data <- sim_weak(nt, nsub, nreg, ldim = ldim)
   X <- cbind(rep(1, nsub))
