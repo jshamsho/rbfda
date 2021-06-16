@@ -28,6 +28,7 @@ SamplerWeak::SamplerWeak(std::string covstruct_,
   dat = dat_;
   pars = ParametersWeak(dat, init_);
   transf = TransformationsWeak(dat, pars);
+
   // arma::uword dim = pars.delta_eta1.n_elem + pars.delta_eta2.n_elem;
   // p = arma::randn(dim);
   // q = arma::vec(dim);
@@ -58,7 +59,7 @@ void SamplerPartial::sample() {
       pars.update_zeta(dat, transf);
       pars.update_phi(dat, transf);
       pars.update_eta(dat, transf);
-      pars.update_xi_eta(dat, transf);
+      // pars.update_xi_eta(dat, transf);
       pars.update_delta_eta(dat, transf);
       pars.update_beta(dat, transf);
       pars.update_delta_beta(dat, transf);

@@ -29,6 +29,7 @@ new_partial_class <- function(Y, tt, B = NULL, X = NULL, pve = NULL, ldim = NULL
   prec_eta <- NULL
   beta <- NULL
   delta_eta <- NULL
+  evalues <- NULL
   Y.trans <- matrix(0, nrow = nt, ncol = nr)
   Y.trans.smoothed <- matrix(0, nrow = nt, ncol = nr)
   Y.trans.smoothed.centered <- matrix(0, nrow = nt, ncol = nr)
@@ -51,7 +52,7 @@ new_partial_class <- function(Y, tt, B = NULL, X = NULL, pve = NULL, ldim = NULL
                   omega = omega, mu1 = mu1, mu2 = mu2, psi = psi,
                   phi_cube = phi_cube, phi_mat = phi_mat, lambda = lambda,
                   eta = eta, prec_eta = prec_eta, beta = beta,
-                  delta_eta = delta_eta, pve = pve)
+                  delta_eta = delta_eta, pve = pve, evalues = evalues)
   return(structure(members, class = "partial_class"))
 }
 
@@ -65,7 +66,7 @@ run_fpca_partial <- function(partial_class) {
     fpca1 <- refund::fpca.face(t(Y.trans), center = TRUE,
                                pve = pve, knots = floor(length(tt) * 0.2))
   } else {
-    fpca1 <- refund::fpca.face(t(Y.trans), center = TRUE, floor(length(tt) * 0.2),
+    fpca1 <- refund::fpca.face(t(Y.trans), center = TRUE, knots = floor(length(tt) * 0.2),
                                npc = npc)
   }
   npc <- fpca1$npc
@@ -75,13 +76,14 @@ run_fpca_partial <- function(partial_class) {
       fpca1$scores[i, 1:npc]
     Y.trans.smoothed.centered[,i] <- Y.trans[, i] - fpca1$mu
   }
+  evalues <- fpca1$evalues
   members <- list(Y = Y, Y.trans = Y.trans, Y.trans.smoothed = Y.trans.smoothed,
                   Y.trans.smoothed.centered = Y.trans.smoothed.centered,
                   tt = tt, nt = nt, B = B, X = X, nsub = nsub, nreg = nreg, npc = npc,
                   omega = omega, mu1 = mu1, mu2 = mu2, psi = psi,
                   phi_cube = phi_cube, phi_mat = phi_mat, lambda = lambda,
                   eta = eta, prec_eta = prec_eta, beta = beta,
-                  delta_eta = delta_eta)
+                  delta_eta = delta_eta, evalues = evalues)
   return(structure(members, class = "partial_class"))
 }
 
@@ -102,7 +104,7 @@ estimate_residual_error_partial <- function(partial_class) {
                   omega = omega, mu1 = mu1, mu2 = mu2, psi = psi,
                   phi_cube = phi_cube, phi_mat = phi_mat, lambda = lambda,
                   eta = eta, prec_eta = prec_eta, beta = beta,
-                  delta_eta = delta_eta)
+                  delta_eta = delta_eta, evalues = evalues)
   return(structure(members, class = "partial_class"))
 }
 
@@ -122,7 +124,7 @@ set_size_param_partial <- function(partial_class) {
                   omega = omega, mu1 = mu1, mu2 = mu2, psi = psi,
                   phi_cube = phi_cube, phi_mat = phi_mat, lambda = lambda,
                   eta = eta, prec_eta = prec_eta, beta = beta,
-                  delta_eta = delta_eta)
+                  delta_eta = delta_eta, evalues = evalues)
   return(structure(members, class = "partial_class"))
 }
 
@@ -182,7 +184,7 @@ set_param_partial <- function(partial_class) {
                   omega = omega, mu1 = mu1, mu2 = mu2, psi = psi,
                   phi_cube = phi_cube, phi_mat = phi_mat, lambda = lambda,
                   eta = eta, prec_eta = prec_eta, beta = beta,
-                  delta_eta = delta_eta)
+                  delta_eta = delta_eta, evalues = evalues)
   return(structure(members, class = "partial_class"))
 }
 

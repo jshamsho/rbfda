@@ -8,7 +8,6 @@ Transformations::Transformations(Data& dat, Parameters& pars) {
   psi = dat.basis * pars.lambda;
   ones_mat = arma::ones<arma::mat>(dat.ldim, dat.ldim);
   psi_lin_constr = arma::zeros(dat.ldim, dat.basisdim);
-
   for (arma::uword i = 0; i < dat.nsub; i++) {
     bty.rows(i * dat.basisdim, (i + 1) * dat.basisdim - 1) = dat.basis.t() * 
       dat.response.rows(i * dat.nt, (i + 1) * dat.nt - 1);

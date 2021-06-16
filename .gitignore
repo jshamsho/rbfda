@@ -11,4 +11,4 @@
 *.rds
 .Rproj.user
 *.ipynb_checkpoints
-
+**/figures

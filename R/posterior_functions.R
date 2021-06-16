@@ -101,3 +101,40 @@ get_postmean <- function(result, x, conf = .95) {
   }
   return(summary_mean)
 }
+
+#' @export
+get_postprediction <- function(result, sub, reg, conf = .95) {
+  iterations <- result$control$iterations
+  burnin <- result$control$burnin
+  tt <- result$data$time
+  nt <- length(tt)
+  ldim <- result$data$ldim
+  nreg <- result$data$nreg
+  B <- result$data$basis
+  prediction_mat <- matrix(0, nt, iterations - burnin)
+  sub_idx <- ((sub - 1) * nreg + 1):(sub * nreg)
+  idx <- 1
+  for (iter in (burnin + 1):iterations) {
+    if (result$control$covstruct == "weak") {
+      prediction_mat[, idx] <-  c(B %*% result$samples$lambda[,,iter] %*%
+                                         t(result$samples$eta[sub_idx,, iter]) %*%
+                                         result$samples$phi[reg,,iter])
+    } else if (result$control$covstruct == "partial") {
+      for (l in 1:ldim) {
+        prediction_mat[, idx] <-  prediction_mat[, idx] +
+          B %*% result$samples$lambda[,l,iter] %*%
+          result$samples$eta[sub_idx,l,iter] %*%
+          result$samples$phi[[iter]][reg,,l]
+      }
+    }
+    idx <- idx + 1
+  }
+  prediction_mean <- apply(prediction_mat, 1, mean)
+  prediction_sd <- apply(prediction_mat, 1, sd)
+  mult <- -qnorm((1 - conf) / 2)
+  summary_prediction <- matrix(0, nt, 3)
+  summary_prediction[, 1] <- prediction_mean
+  summary_prediction[, 2] <- prediction_mean - mult * prediction_sd
+  summary_prediction[, 3] <- prediction_mean + mult * prediction_sd
+  return(summary_prediction)
+}

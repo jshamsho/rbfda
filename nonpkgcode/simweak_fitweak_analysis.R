@@ -1,8 +1,8 @@
 library(tidyverse)
-runthese <- paste0("n50_simweak_fitweak", 1:300, ".RData") %in% 
+runthese <- paste0("n200_simweak_fitweak", 1:300, ".RData") %in% 
   dir(paste0("/Users/johnshamshoian/Documents/",
              "R_projects/rrbfda/output/",
-             "n50_simweak_fitweak")) %>%
+             "n200_simweak_fitweak")) %>%
   which()
 
 nsim <- length(runthese)
@@ -35,7 +35,7 @@ for (num in runthese) {
   
   loadthis <- paste0("/Users/johnshamshoian/Documents/", 
                      "R_projects/rrbfda/output/",
-                     "n50_simweak_fitweak/n50_simweak_fitweak", 
+                     "n200_simweak_fitweak/n200_simweak_fitweak", 
                      num, ".RData")
   load(loadthis)
   true_eigenvec <- simstats$sim_data$phi
@@ -83,15 +83,16 @@ for (num in runthese) {
 
   i <- i + 1
 }
-round(sum(yjpmin < .05) / nsim * 100, 2)
-round(sum(mean_pval < .05) / nsim * 100, 2)
+round(sum(yjpmin < .25) / nsim * 100, 2)
+# round(sum(mean_pval < .05) / nsim * 100, 2)
 round(sum(mean_zscore < .05) / nsim * 100, 2)
-round(sum(median_zscore < .05) / nsim * 100, 2)
+round(sum(mean_zscore < .10) / nsim * 100, 2)
+# round(sum(median_zscore < .05) / nsim * 100, 2)
 # round(sum(mean_pval < .10) / nsim * 100, 2)
 round(mean(apply(mean_accuracy, 1, median)) * 1e3, digits = 2)
 # apply(eigenfunc_accuracy, 1, quantile, c(.025, .5, .975))
 round(apply(eigenfunc_accuracy, 1, median) * 1e3, digits = 2)
-round(apply(eigenvec_accuracy, 1, median) * 1e3, digits = 2)
+# round(apply(eigenvec_accuracy, 1, median) * 1e3, digits = 2)
 
 # 
 # zscore <- -qnorm(simstats$pvals)

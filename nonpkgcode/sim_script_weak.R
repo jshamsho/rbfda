@@ -19,28 +19,30 @@ print(paste("start =", start))
 runthis <- function(myseed) {
   print(paste0("Working on seed ", myseed))
   set.seed(myseed)
-  nsub <- 100
-  nt <- 60
-  nreg <- 6
-  ldim <- 4
+  nsub <- 40
+  nt <- 33
+  nreg <- 5
+  ldim <- 6
   ndf <- 15
-  iterations <- 100
+  iterations <- 5000
   thin <- 1
-  burnin <- 25
+  burnin <- 1000
   tt <- seq(from = 0, to = 1, length.out = nt)
-  sim_data <- sim_weak(nt, nsub, nreg, ldim = ldim)
+  sim_data <- sim_non_partial(nt, nsub, nreg, ldim = ldim, rho1 = .8, rho2 = .5)
   X <- cbind(rep(1, nsub))
   basisobj <- mgcv::smoothCon(s(tt, k = ndf, bs = "ps", m = 2),
   data.frame(tt), absorb.cons = FALSE)
   B <- basisobj[[1]]$X
   penalty <- basisobj[[1]]$S[[1]] * basisobj[[1]]$S.scale
-  init_mcmc <- rrbfda::initialize_mcmc_partial(sim_data$Y, tt, B, X)
+  init_mcmc <- rrbfda::initialize_mcmc_weak(sim_data$Y, tt, B, X)
   ldim_est <- ncol(init_mcmc$lambda)
   result <- run_mcmc(response = sim_data$Y, design = X, basis = B, time = tt,
                      penalty = penalty, ldim = ldim_est, iter = iterations, burnin = burnin,
-                     thin = thin, init_ = init_mcmc, covstruct = "partial")
+                     thin = thin, init_ = init_mcmc, covstruct = "weak")
   pvals_partial <- get_pvals_partial(result)
   hist(pvals_partial)
+  pvals_weak <- get_pvals_weak(result)
+  hist(pvals_weak)
   eigenfunc_summary <- array(0, dim = c(nt, ldim, 3))
   for (l in 1:ldim) {
     eigenfunc_summary[, l, ] <- get_posteigenfunc(result, l)

@@ -529,7 +529,7 @@ double normal_trunc_left(double a, double b, double cut) {
   y = R::qnorm5(u, a, b, 1, 0);
   return y; 
 } 
-// 
+
 // [[Rcpp::export]]
 arma::mat reshape_nreg(arma::mat eta, arma::uword nsub, arma::uword nreg) {
   arma::uword ldim = eta.n_cols;

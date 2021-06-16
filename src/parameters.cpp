@@ -512,13 +512,13 @@ void ParametersPartial::update_eta(const Data& dat, Transformations& transf) {
 void Parameters::update_xi_eta(const Data& dat, Transformations& transf) {
   double shape, rate;
   for (arma::uword l = 0; l < dat.ldim; l++) {
-    shape = .5 + nu / 2.;
+    shape = .5 * nu + .5;
     arma::uword idx;
     for (arma::uword r = 0; r < dat.nreg; r++) {
       for (arma::uword i = 0; i < dat.nsub; i++) {
         idx = i * dat.nreg + r;
-        rate = nu / 2. +
-                     .5 * std::pow(eta(idx, l) - dat.design(i) * beta(r, l), 2) * sigmasqeta(r, l);
+        rate = .5 * nu +
+               .5 * std::pow(eta(idx, l) - arma::as_scalar(dat.design.row(i) * beta.col(l).rows(r * dat.designdim, (r + 1) * dat.designdim - 1)), 2) * sigmasqeta(r, l);
         xi_eta(idx, l) = R::rgamma(shape, 1. / rate);
       }
     }
